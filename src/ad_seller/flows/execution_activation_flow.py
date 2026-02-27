@@ -22,8 +22,7 @@ from ..models.flow_state import (
     SellerFlowState,
 )
 from ..models.core import DealType, ExecutionOrderStatus
-from ..clients import UnifiedClient, Protocol
-from ..config import get_settings
+from ..clients import UnifiedClient, Protocol, get_ad_server_client
 
 
 class ExecutionState(SellerFlowState):
@@ -63,7 +62,6 @@ class ExecutionActivationFlow(Flow[ExecutionState]):
     def __init__(self) -> None:
         """Initialize the execution activation flow."""
         super().__init__()
-        self._settings = get_settings()
 
     @start()
     async def initialize_execution(self) -> None:
@@ -147,46 +145,38 @@ class ExecutionActivationFlow(Flow[ExecutionState]):
             self.state.warnings.append("No deal found for sync")
             return
 
-        # Determine ad server type
-        ad_server_type = self._settings.ad_server_type
+        try:
+            ad_server = get_ad_server_client()
+            async with ad_server:
+                # Determine pricing
+                is_fixed = deal.deal_type == DealType.PROGRAMMATIC_GUARANTEED
+                floor_micros = 0 if is_fixed else int(deal.price * 1_000_000)
+                fixed_micros = int(deal.price * 1_000_000) if is_fixed else 0
 
-        if ad_server_type == "google_ad_manager":
-            await self._sync_to_gam_deal(deal)
-        elif ad_server_type == "freewheel":
-            await self._sync_to_freewheel_deal(deal)
-        else:
-            self.state.warnings.append(f"Unknown ad server type: {ad_server_type}")
+                result = await ad_server.create_deal(
+                    deal_id=deal.deal_id,
+                    name=f"Deal {deal.deal_id}",
+                    deal_type=deal.deal_type.value if hasattr(deal.deal_type, "value") else str(deal.deal_type),
+                    floor_price_micros=floor_micros,
+                    fixed_price_micros=fixed_micros,
+                )
 
-    async def _sync_to_gam_deal(self, deal: Any) -> None:
-        """Sync deal to Google Ad Manager as Programmatic Deal."""
-        # In production, this would use GAM API
-        # For now, simulate the sync
-        self.state.ad_server_entity_id = f"gam-deal-{deal.deal_id}"
-        self.state.sync_status = "synced"
+                self.state.ad_server_entity_id = result.id
+                self.state.sync_status = "synced"
 
-        # Store entity mapping
-        self.state.execution_orders[deal.deal_id] = {
-            "execution_order_id": self.state.execution_order_id,
-            "ad_server_type": "google_ad_manager",
-            "ad_server_entity_id": self.state.ad_server_entity_id,
-            "entity_type": "programmatic_deal",
-            "price": deal.price,
-            "pricing_type": "fixed" if deal.deal_type == DealType.PROGRAMMATIC_GUARANTEED else "floor",
-        }
-
-    async def _sync_to_freewheel_deal(self, deal: Any) -> None:
-        """Sync deal to FreeWheel as Deal ID."""
-        # In production, this would use FreeWheel API
-        self.state.ad_server_entity_id = f"fw-deal-{deal.deal_id}"
-        self.state.sync_status = "synced"
-
-        self.state.execution_orders[deal.deal_id] = {
-            "execution_order_id": self.state.execution_order_id,
-            "ad_server_type": "freewheel",
-            "ad_server_entity_id": self.state.ad_server_entity_id,
-            "entity_type": "deal",
-            "price": deal.price,
-        }
+                self.state.execution_orders[deal.deal_id] = {
+                    "execution_order_id": self.state.execution_order_id,
+                    "ad_server_type": ad_server.ad_server_type.value,
+                    "ad_server_entity_id": result.id,
+                    "entity_type": "programmatic_deal",
+                    "price": deal.price,
+                    "pricing_type": "fixed" if is_fixed else "floor",
+                }
+        except NotImplementedError as e:
+            self.state.warnings.append(str(e))
+        except Exception as e:
+            self.state.errors.append(f"Deal sync failed: {e}")
+            self.state.status = ExecutionStatus.FAILED
 
     @listen(determine_sync_path)
     async def sync_io_order_to_ad_server(self) -> None:
@@ -204,47 +194,42 @@ class ExecutionActivationFlow(Flow[ExecutionState]):
         # Get proposal data for IO creation
         proposal_data = self.state.counter_proposals.get(self.state.proposal_id, {})
 
-        ad_server_type = self._settings.ad_server_type
+        try:
+            ad_server = get_ad_server_client()
+            async with ad_server:
+                # Create order
+                advertiser_name = proposal_data.get("advertiser_name", "Unknown Advertiser")
+                order = await ad_server.create_order(
+                    name=f"IO-{self.state.execution_order_id}",
+                    advertiser_id=proposal_data.get("advertiser_id", ""),
+                    advertiser_name=advertiser_name,
+                    external_id=self.state.execution_order_id,
+                )
 
-        if ad_server_type == "google_ad_manager":
-            await self._sync_to_gam_order(proposal_data)
-        elif ad_server_type == "freewheel":
-            await self._sync_to_freewheel_io(proposal_data)
-        else:
-            self.state.warnings.append(f"Unknown ad server type: {ad_server_type}")
+                # Create line item
+                line_item = await ad_server.create_line_item(
+                    order_id=order.id,
+                    name=f"Line-{self.state.execution_order_id}",
+                    cost_micros=int(proposal_data.get("price", 0) * 1_000_000),
+                    impressions_goal=proposal_data.get("impressions", -1),
+                )
 
-    async def _sync_to_gam_order(self, proposal_data: dict) -> None:
-        """Sync to Google Ad Manager as Order + Line Items."""
-        # In production, this would use GAM API
-        order_id = f"gam-order-{self.state.execution_order_id}"
-        line_id = f"gam-line-{uuid.uuid4().hex[:8]}"
+                self.state.ad_server_entity_id = order.id
+                self.state.sync_status = "synced"
 
-        self.state.ad_server_entity_id = order_id
-        self.state.sync_status = "synced"
-
-        self.state.execution_orders[self.state.proposal_id] = {
-            "execution_order_id": self.state.execution_order_id,
-            "ad_server_type": "google_ad_manager",
-            "ad_server_order_id": order_id,
-            "ad_server_line_ids": [line_id],
-            "entity_type": "order",
-            "budget_committed": True,
-        }
-
-    async def _sync_to_freewheel_io(self, proposal_data: dict) -> None:
-        """Sync to FreeWheel as Insertion Order."""
-        io_id = f"fw-io-{self.state.execution_order_id}"
-
-        self.state.ad_server_entity_id = io_id
-        self.state.sync_status = "synced"
-
-        self.state.execution_orders[self.state.proposal_id] = {
-            "execution_order_id": self.state.execution_order_id,
-            "ad_server_type": "freewheel",
-            "ad_server_io_id": io_id,
-            "entity_type": "insertion_order",
-            "budget_committed": True,
-        }
+                self.state.execution_orders[self.state.proposal_id] = {
+                    "execution_order_id": self.state.execution_order_id,
+                    "ad_server_type": ad_server.ad_server_type.value,
+                    "ad_server_order_id": order.id,
+                    "ad_server_line_ids": [line_item.id],
+                    "entity_type": "order",
+                    "budget_committed": True,
+                }
+        except NotImplementedError as e:
+            self.state.warnings.append(str(e))
+        except Exception as e:
+            self.state.errors.append(f"IO sync failed: {e}")
+            self.state.status = ExecutionStatus.FAILED
 
     @listen(sync_deal_id_to_ad_server, sync_io_order_to_ad_server)
     async def update_execution_status(self) -> None:
