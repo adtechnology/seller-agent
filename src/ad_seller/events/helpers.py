@@ -21,6 +21,7 @@ async def emit_event(
     flow_type: str = "",
     proposal_id: str = "",
     deal_id: str = "",
+    session_id: str = "",
     payload: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> Optional[Event]:
@@ -37,6 +38,7 @@ async def emit_event(
             flow_type=flow_type,
             proposal_id=proposal_id,
             deal_id=deal_id,
+            session_id=session_id,
             payload=payload or {},
             metadata=kwargs,
         )

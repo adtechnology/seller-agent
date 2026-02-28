@@ -85,6 +85,10 @@ class Settings(BaseSettings):
     approval_timeout_hours: int = 24
     approval_required_flows: str = ""  # Comma-separated gate names: "proposal_decision,deal_registration"
 
+    # Session Configuration
+    session_ttl_seconds: int = 604800  # 7 days
+    session_max_messages: int = 200
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -35,6 +35,11 @@ class EventType(str, Enum):
     APPROVAL_DENIED = "approval.denied"
     APPROVAL_TIMED_OUT = "approval.timed_out"
 
+    # Session lifecycle
+    SESSION_CREATED = "session.created"
+    SESSION_RESUMED = "session.resumed"
+    SESSION_CLOSED = "session.closed"
+
 
 class Event(BaseModel):
     """An event emitted by the system."""
@@ -46,6 +51,7 @@ class Event(BaseModel):
     flow_type: str = ""
     proposal_id: str = ""
     deal_id: str = ""
+    session_id: str = ""
     payload: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 

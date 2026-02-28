@@ -44,6 +44,7 @@ class EventBus(ABC):
         self,
         flow_id: Optional[str] = None,
         event_type: Optional[str] = None,
+        session_id: Optional[str] = None,
         limit: int = 50,
     ) -> list[Event]:
         """List persisted events, optionally filtered."""
