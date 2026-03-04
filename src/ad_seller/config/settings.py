@@ -101,6 +101,10 @@ class Settings(BaseSettings):
     seller_agent_url: str = "http://localhost:8000"
     seller_agent_name: str = "Ad Seller Agent"
 
+    # API Key Authentication
+    api_key_auth_enabled: bool = True
+    api_key_default_expiry_days: Optional[int] = None  # None = never expires
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -12,7 +12,7 @@ Provides endpoints for:
 
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 app = FastAPI(
@@ -215,10 +215,12 @@ async def get_product(product_id: str):
 
 
 @app.post("/pricing", response_model=PricingResponse)
-async def get_pricing(request: PricingRequest):
+async def get_pricing(
+    request: PricingRequest,
+    api_key_record=Depends(_get_optional_api_key_record),
+):
     """Get pricing for a product based on buyer context."""
     from ...engines.pricing_rules_engine import PricingRulesEngine
-    from ...models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
     from ...models.pricing_tiers import TieredPricingConfig
     from ...flows import ProductSetupFlow
 
@@ -230,25 +232,14 @@ async def get_pricing(request: PricingRequest):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # Create buyer context
-    tier_map = {
-        "public": AccessTier.PUBLIC,
-        "seat": AccessTier.SEAT,
-        "agency": AccessTier.AGENCY,
-        "advertiser": AccessTier.ADVERTISER,
-    }
-    access_tier = tier_map.get(request.buyer_tier.lower(), AccessTier.PUBLIC)
-
     # Enforce agent registry (blocked agents get 403 before any data)
     _, max_tier = await _resolve_and_enforce_agent(request.agent_url)
 
-    identity = BuyerIdentity(
+    context = _build_buyer_context(
+        buyer_tier=request.buyer_tier,
         agency_id=request.agency_id,
         advertiser_id=request.advertiser_id,
-    )
-    context = BuyerContext(
-        identity=identity,
-        is_authenticated=access_tier != AccessTier.PUBLIC,
+        api_key_record=api_key_record,
         agent_url=request.agent_url,
         max_access_tier=max_tier,
     )
@@ -276,10 +267,12 @@ async def get_pricing(request: PricingRequest):
 
 
 @app.post("/proposals", response_model=ProposalResponse)
-async def submit_proposal(request: ProposalRequest):
+async def submit_proposal(
+    request: ProposalRequest,
+    api_key_record=Depends(_get_optional_api_key_record),
+):
     """Submit a proposal for review."""
     from ...flows import ProposalHandlingFlow, ProductSetupFlow
-    from ...models.buyer_identity import BuyerContext, BuyerIdentity
     import uuid
 
     # Get products
@@ -289,14 +282,12 @@ async def submit_proposal(request: ProposalRequest):
     # Enforce agent registry
     _, max_tier = await _resolve_and_enforce_agent(request.agent_url)
 
-    # Create buyer context
-    identity = BuyerIdentity(
+    # Create buyer context (API key identity overrides body params)
+    context = _build_buyer_context(
+        buyer_tier="agency" if request.agency_id else "public",
         agency_id=request.agency_id,
         advertiser_id=request.advertiser_id,
-    )
-    context = BuyerContext(
-        identity=identity,
-        is_authenticated=request.agency_id is not None,
+        api_key_record=api_key_record,
         agent_url=request.agent_url,
         max_access_tier=max_tier,
     )
@@ -391,30 +382,25 @@ async def generate_deal(request: DealRequest):
 
 
 @app.post("/discovery")
-async def discovery_query(request: DiscoveryRequest):
+async def discovery_query(
+    request: DiscoveryRequest,
+    api_key_record=Depends(_get_optional_api_key_record),
+):
     """Process a discovery query about inventory."""
     from ...flows import DiscoveryInquiryFlow, ProductSetupFlow
-    from ...models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
 
     # Get products
     setup_flow = ProductSetupFlow()
     await setup_flow.kickoff()
 
-    # Create buyer context
-    tier_map = {
-        "public": AccessTier.PUBLIC,
-        "agency": AccessTier.AGENCY,
-        "advertiser": AccessTier.ADVERTISER,
-    }
-    access_tier = tier_map.get(request.buyer_tier.lower(), AccessTier.PUBLIC)
-
     # Enforce agent registry
     _, max_tier = await _resolve_and_enforce_agent(request.agent_url)
 
-    identity = BuyerIdentity(agency_id=request.agency_id)
-    context = BuyerContext(
-        identity=identity,
-        is_authenticated=access_tier != AccessTier.PUBLIC,
+    # Create buyer context (API key identity overrides body params)
+    context = _build_buyer_context(
+        buyer_tier=request.buyer_tier,
+        agency_id=request.agency_id,
+        api_key_record=api_key_record,
         agent_url=request.agent_url,
         max_access_tier=max_tier,
     )
@@ -643,10 +629,12 @@ async def _resume_proposal_flow(request, response):
 
 
 @app.post("/sessions")
-async def create_session(request: CreateSessionRequest):
+async def create_session(
+    request: CreateSessionRequest,
+    api_key_record=Depends(_get_optional_api_key_record),
+):
     """Create a new buyer conversation session."""
     from ...interfaces.chat.main import ChatInterface
-    from ...models.buyer_identity import BuyerContext, BuyerIdentity
     from ...storage.factory import get_storage
 
     # Enforce agent registry
@@ -654,14 +642,17 @@ async def create_session(request: CreateSessionRequest):
 
     storage = await get_storage()
 
-    identity = BuyerIdentity(
-        seat_id=request.seat_id,
+    # API key identity overrides body params; is_authenticated derived from key
+    context = _build_buyer_context(
+        buyer_tier="advertiser" if request.advertiser_id else (
+            "agency" if request.agency_id else (
+                "seat" if request.seat_id else "public"
+            )
+        ),
         agency_id=request.agency_id,
         advertiser_id=request.advertiser_id,
-    )
-    context = BuyerContext(
-        identity=identity,
-        is_authenticated=request.is_authenticated,
+        seat_id=request.seat_id,
+        api_key_record=api_key_record,
         agent_url=request.agent_url,
         max_access_tier=max_tier,
     )
@@ -793,7 +784,11 @@ async def close_session_endpoint(session_id: str):
 
 
 @app.post("/proposals/{proposal_id}/counter")
-async def counter_proposal(proposal_id: str, request: CounterOfferRequest):
+async def counter_proposal(
+    proposal_id: str,
+    request: CounterOfferRequest,
+    api_key_record=Depends(_get_optional_api_key_record),
+):
     """Submit a counter-offer in an ongoing negotiation.
 
     Loads or creates a NegotiationHistory, evaluates the buyer's offer,
@@ -815,7 +810,10 @@ async def counter_proposal(proposal_id: str, request: CounterOfferRequest):
     neg_engine = NegotiationEngine(pricing_engine, yield_opt)
 
     buyer_context = _build_buyer_context(
-        request.buyer_tier, request.agency_id, request.advertiser_id
+        buyer_tier=request.buyer_tier,
+        agency_id=request.agency_id,
+        advertiser_id=request.advertiser_id,
+        api_key_record=api_key_record,
     )
 
     # Load existing negotiation or start new one
@@ -936,6 +934,25 @@ async def get_negotiation_status(proposal_id: str):
 
 
 # =============================================================================
+# Helper: API key authentication dependency
+# =============================================================================
+
+
+async def _get_optional_api_key_record(
+    authorization: Optional[str] = None,
+    x_api_key: Optional[str] = None,
+):
+    """FastAPI dependency: validate API key from headers if present.
+
+    Returns None for anonymous requests (no key in headers).
+    Raises HTTPException(401) for invalid, revoked, or expired keys.
+    Accepts ``Authorization: Bearer <key>`` or ``X-Api-Key: <key>``.
+    """
+    from ...auth.dependencies import get_api_key_record
+    return await get_api_key_record(authorization, x_api_key)
+
+
+# =============================================================================
 # Helper: build buyer context from tier params
 # =============================================================================
 
@@ -944,10 +961,31 @@ def _build_buyer_context(
     buyer_tier: str = "public",
     agency_id: Optional[str] = None,
     advertiser_id: Optional[str] = None,
+    seat_id: Optional[str] = None,
+    api_key_record: Optional[Any] = None,
+    agent_url: Optional[str] = None,
+    max_access_tier: Optional[Any] = None,
 ):
-    """Build a BuyerContext from query params."""
+    """Build a BuyerContext, preferring API key identity over body params.
+
+    If an api_key_record is present, the key's identity is used and the
+    buyer is marked as authenticated. Otherwise, falls back to body/query
+    params (backward compatible with pre-auth behavior).
+
+    The max_access_tier (from agent registry) is merged in when provided.
+    """
     from ...models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
 
+    if api_key_record is not None:
+        return BuyerContext(
+            identity=api_key_record.identity,
+            is_authenticated=True,
+            authentication_method="api_key",
+            agent_url=agent_url,
+            max_access_tier=max_access_tier,
+        )
+
+    # Fallback: body params (existing behavior, backward compatible)
     tier_map = {
         "public": AccessTier.PUBLIC,
         "seat": AccessTier.SEAT,
@@ -955,10 +993,16 @@ def _build_buyer_context(
         "advertiser": AccessTier.ADVERTISER,
     }
     access_tier = tier_map.get(buyer_tier.lower(), AccessTier.PUBLIC)
-    identity = BuyerIdentity(agency_id=agency_id, advertiser_id=advertiser_id)
+    identity = BuyerIdentity(
+        seat_id=seat_id,
+        agency_id=agency_id,
+        advertiser_id=advertiser_id,
+    )
     return BuyerContext(
         identity=identity,
         is_authenticated=access_tier != AccessTier.PUBLIC,
+        agent_url=agent_url,
+        max_access_tier=max_access_tier,
     )
 
 
@@ -1026,12 +1070,18 @@ async def get_media_kit_package(package_id: str):
 
 
 @app.post("/media-kit/search")
-async def search_media_kit(request: MediaKitSearchRequest):
+async def search_media_kit(
+    request: MediaKitSearchRequest,
+    api_key_record=Depends(_get_optional_api_key_record),
+):
     """Search packages by keyword. Authenticated buyers get richer results."""
     context = None
-    if request.buyer_tier != "public":
+    if api_key_record is not None or request.buyer_tier != "public":
         context = _build_buyer_context(
-            request.buyer_tier, request.agency_id, request.advertiser_id
+            buyer_tier=request.buyer_tier,
+            agency_id=request.agency_id,
+            advertiser_id=request.advertiser_id,
+            api_key_record=api_key_record,
         )
 
     service = await _get_media_kit_service()
@@ -1050,6 +1100,7 @@ async def list_packages(
     agency_id: Optional[str] = None,
     advertiser_id: Optional[str] = None,
     layer: Optional[str] = None,
+    api_key_record=Depends(_get_optional_api_key_record),
 ):
     """List packages with tier-gated view."""
     from ...models.media_kit import PackageLayer
@@ -1063,10 +1114,15 @@ async def list_packages(
 
     service = await _get_media_kit_service()
 
-    if buyer_tier == "public":
+    if api_key_record is None and buyer_tier == "public":
         packages = await service.list_packages_public(layer=pkg_layer)
     else:
-        context = _build_buyer_context(buyer_tier, agency_id, advertiser_id)
+        context = _build_buyer_context(
+            buyer_tier=buyer_tier,
+            agency_id=agency_id,
+            advertiser_id=advertiser_id,
+            api_key_record=api_key_record,
+        )
         packages = await service.list_packages_authenticated(context, layer=pkg_layer)
 
     return {"packages": [p.model_dump() for p in packages]}
@@ -1078,14 +1134,20 @@ async def get_package(
     buyer_tier: str = "public",
     agency_id: Optional[str] = None,
     advertiser_id: Optional[str] = None,
+    api_key_record=Depends(_get_optional_api_key_record),
 ):
     """Get a single package with tier-gated view."""
     service = await _get_media_kit_service()
 
-    if buyer_tier == "public":
+    if api_key_record is None and buyer_tier == "public":
         package = await service.get_package_public(package_id)
     else:
-        context = _build_buyer_context(buyer_tier, agency_id, advertiser_id)
+        context = _build_buyer_context(
+            buyer_tier=buyer_tier,
+            agency_id=agency_id,
+            advertiser_id=advertiser_id,
+            api_key_record=api_key_record,
+        )
         package = await service.get_package_authenticated(package_id, context)
 
     if not package:
@@ -1292,6 +1354,100 @@ async def _resolve_and_enforce_agent(
         )
 
     return agent, tier
+
+
+# =============================================================================
+# API Key Management Endpoints (Operator-facing)
+# =============================================================================
+
+
+class CreateApiKeyRequest(BaseModel):
+    """Request to create a new API key for a buyer."""
+
+    seat_id: Optional[str] = None
+    seat_name: Optional[str] = None
+    dsp_platform: Optional[str] = None
+    agency_id: Optional[str] = None
+    agency_name: Optional[str] = None
+    agency_holding_company: Optional[str] = None
+    advertiser_id: Optional[str] = None
+    advertiser_name: Optional[str] = None
+    label: str = ""
+    expires_in_days: Optional[int] = None
+
+
+@app.post("/auth/api-keys")
+async def create_api_key(request: CreateApiKeyRequest):
+    """Create a new API key for a buyer.
+
+    The response contains the full API key which is shown ONLY ONCE.
+    Store it securely — it cannot be retrieved again.
+    """
+    from ...auth.api_key_service import ApiKeyService
+    from ...models.api_key import ApiKeyCreateRequest
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+    service = ApiKeyService(storage)
+
+    create_req = ApiKeyCreateRequest(
+        seat_id=request.seat_id,
+        seat_name=request.seat_name,
+        dsp_platform=request.dsp_platform,
+        agency_id=request.agency_id,
+        agency_name=request.agency_name,
+        agency_holding_company=request.agency_holding_company,
+        advertiser_id=request.advertiser_id,
+        advertiser_name=request.advertiser_name,
+        label=request.label,
+        expires_in_days=request.expires_in_days,
+    )
+
+    response = await service.create_key(create_req)
+    return response.model_dump(mode="json")
+
+
+@app.get("/auth/api-keys")
+async def list_api_keys():
+    """List all API keys (metadata only, no secrets)."""
+    from ...auth.api_key_service import ApiKeyService
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+    service = ApiKeyService(storage)
+    keys = await service.list_keys()
+    return {
+        "keys": [k.model_dump(mode="json") for k in keys],
+        "total": len(keys),
+    }
+
+
+@app.get("/auth/api-keys/{key_id}")
+async def get_api_key_details(key_id: str):
+    """Get details for a specific API key."""
+    from ...auth.api_key_service import ApiKeyService
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+    service = ApiKeyService(storage)
+    info = await service.get_key_info(key_id)
+    if not info:
+        raise HTTPException(status_code=404, detail="API key not found")
+    return info.model_dump(mode="json")
+
+
+@app.delete("/auth/api-keys/{key_id}")
+async def revoke_api_key(key_id: str):
+    """Revoke an API key. Revoked keys return 401 on use."""
+    from ...auth.api_key_service import ApiKeyService
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+    service = ApiKeyService(storage)
+    revoked = await service.revoke_key(key_id)
+    if not revoked:
+        raise HTTPException(status_code=404, detail="API key not found")
+    return {"key_id": key_id, "status": "revoked"}
 
 
 # =============================================================================

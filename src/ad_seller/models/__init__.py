@@ -93,6 +93,12 @@ from .linear_tv import (
     MakegoodTerms,
     SupplyPoolEntry,
 )
+from .api_key import (
+    ApiKeyCreateRequest,
+    ApiKeyCreateResponse,
+    ApiKeyInfo,
+    ApiKeyRecord,
+)
 from .agent_registry import (
     AgentAuthentication,
     AgentCapabilities,
@@ -274,4 +280,9 @@ __all__ = [
     "RegistrySource",
     "TrustStatus",
     "TRUST_TO_TIER_MAP",
+    # API key authentication
+    "ApiKeyCreateRequest",
+    "ApiKeyCreateResponse",
+    "ApiKeyInfo",
+    "ApiKeyRecord",
 ]
