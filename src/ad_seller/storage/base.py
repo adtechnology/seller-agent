@@ -201,3 +201,29 @@ class StorageBackend(ABC):
     async def set_negotiation(self, proposal_id: str, data: dict) -> None:
         """Store negotiation history."""
         await self.set(f"negotiation:{proposal_id}", data)
+
+    # Agent registry operations
+
+    async def get_agent(self, agent_id: str) -> Optional[dict]:
+        """Get a registered agent by ID."""
+        return await self.get(f"agent:{agent_id}")
+
+    async def set_agent(self, agent_id: str, agent_data: dict) -> None:
+        """Store a registered agent."""
+        await self.set(f"agent:{agent_id}", agent_data)
+
+    async def delete_agent(self, agent_id: str) -> bool:
+        """Delete a registered agent."""
+        return await self.delete(f"agent:{agent_id}")
+
+    async def list_agents(self) -> list[dict]:
+        """List all registered agents."""
+        keys = await self.keys("agent:*")
+        agents = []
+        for key in keys:
+            if key.startswith("agent_url_index:"):
+                continue
+            agent = await self.get(key)
+            if agent:
+                agents.append(agent)
+        return agents

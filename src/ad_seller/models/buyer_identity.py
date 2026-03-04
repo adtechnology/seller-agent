@@ -132,13 +132,36 @@ class BuyerContext(BaseModel):
     is_authenticated: bool = False
     authentication_method: Optional[str] = None  # oauth, api_key, a2a
 
+    # Agent registry context (set by registry resolution)
+    agent_url: Optional[str] = None
+    agent_trust_status: Optional[str] = None  # TrustStatus value
+    max_access_tier: Optional[AccessTier] = None  # Ceiling from trust status
+
+    # Ordered tier list for ceiling comparison
+    _TIER_ORDER: list[AccessTier] = [
+        AccessTier.PUBLIC,
+        AccessTier.SEAT,
+        AccessTier.AGENCY,
+        AccessTier.ADVERTISER,
+    ]
+
     # Derived properties
     @property
     def effective_tier(self) -> AccessTier:
-        """Get effective access tier considering authentication."""
+        """Get effective access tier considering authentication and trust ceiling.
+
+        If max_access_tier is set (from agent registry), the claimed tier
+        is capped at that ceiling. This ensures e.g. an AAMP-registered agent
+        (SEAT ceiling) claiming ADVERTISER identity only gets SEAT access.
+        """
         if not self.is_authenticated:
             return AccessTier.PUBLIC
-        return self.identity.access_tier
+        claimed = self.identity.access_tier
+        if self.max_access_tier is not None:
+            claimed_idx = self._TIER_ORDER.index(claimed)
+            ceiling_idx = self._TIER_ORDER.index(self.max_access_tier)
+            return self._TIER_ORDER[min(claimed_idx, ceiling_idx)]
+        return claimed
 
     @property
     def eligible_for_negotiation(self) -> bool:

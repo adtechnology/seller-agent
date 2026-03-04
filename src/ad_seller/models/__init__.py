@@ -93,6 +93,18 @@ from .linear_tv import (
     MakegoodTerms,
     SupplyPoolEntry,
 )
+from .agent_registry import (
+    AgentAuthentication,
+    AgentCapabilities,
+    AgentCard,
+    AgentProvider,
+    AgentSkill,
+    AgentType,
+    RegisteredAgent,
+    RegistrySource,
+    TrustStatus,
+    TRUST_TO_TIER_MAP,
+)
 from .negotiation import (
     NegotiationAction,
     NegotiationHistory,
@@ -251,4 +263,15 @@ __all__ = [
     "LinearTVProduct",
     "MakegoodTerms",
     "SupplyPoolEntry",
+    # Agent registry
+    "AgentAuthentication",
+    "AgentCapabilities",
+    "AgentCard",
+    "AgentProvider",
+    "AgentSkill",
+    "AgentType",
+    "RegisteredAgent",
+    "RegistrySource",
+    "TrustStatus",
+    "TRUST_TO_TIER_MAP",
 ]

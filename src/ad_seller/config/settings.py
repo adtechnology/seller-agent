@@ -89,6 +89,18 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = 604800  # 7 days
     session_max_messages: int = 200
 
+    # Agent Registry
+    # Primary registry is IAB Tech Lab AAMP. Additional registries can be
+    # configured via agent_registry_extra_urls (comma-separated). Each gets
+    # a unique registry_id derived from its URL for multi-source tracking.
+    agent_registry_enabled: bool = True
+    agent_registry_url: str = "https://tools.iabtechlab.com/agent-registry"
+    agent_registry_extra_urls: str = ""  # Comma-separated additional registry URLs
+    auto_approve_registered_agents: bool = True
+    require_approval_for_unregistered: bool = True
+    seller_agent_url: str = "http://localhost:8000"
+    seller_agent_name: str = "Ad Seller Agent"
+
 
 @lru_cache
 def get_settings() -> Settings:

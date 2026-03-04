@@ -35,6 +35,7 @@ class PricingRequest(BaseModel):
     agency_id: Optional[str] = None
     advertiser_id: Optional[str] = None
     volume: int = 0
+    agent_url: Optional[str] = None
 
 
 class PricingResponse(BaseModel):
@@ -61,6 +62,7 @@ class ProposalRequest(BaseModel):
     buyer_id: Optional[str] = None
     agency_id: Optional[str] = None
     advertiser_id: Optional[str] = None
+    agent_url: Optional[str] = None
 
 
 class ProposalResponse(BaseModel):
@@ -98,6 +100,7 @@ class DiscoveryRequest(BaseModel):
     query: str
     buyer_tier: str = "public"
     agency_id: Optional[str] = None
+    agent_url: Optional[str] = None
 
 
 class PackageCreateRequest(BaseModel):
@@ -236,6 +239,9 @@ async def get_pricing(request: PricingRequest):
     }
     access_tier = tier_map.get(request.buyer_tier.lower(), AccessTier.PUBLIC)
 
+    # Enforce agent registry (blocked agents get 403 before any data)
+    _, max_tier = await _resolve_and_enforce_agent(request.agent_url)
+
     identity = BuyerIdentity(
         agency_id=request.agency_id,
         advertiser_id=request.advertiser_id,
@@ -243,6 +249,8 @@ async def get_pricing(request: PricingRequest):
     context = BuyerContext(
         identity=identity,
         is_authenticated=access_tier != AccessTier.PUBLIC,
+        agent_url=request.agent_url,
+        max_access_tier=max_tier,
     )
 
     # Calculate price
@@ -278,6 +286,9 @@ async def submit_proposal(request: ProposalRequest):
     setup_flow = ProductSetupFlow()
     await setup_flow.kickoff()
 
+    # Enforce agent registry
+    _, max_tier = await _resolve_and_enforce_agent(request.agent_url)
+
     # Create buyer context
     identity = BuyerIdentity(
         agency_id=request.agency_id,
@@ -286,6 +297,8 @@ async def submit_proposal(request: ProposalRequest):
     context = BuyerContext(
         identity=identity,
         is_authenticated=request.agency_id is not None,
+        agent_url=request.agent_url,
+        max_access_tier=max_tier,
     )
 
     # Process proposal
@@ -395,10 +408,15 @@ async def discovery_query(request: DiscoveryRequest):
     }
     access_tier = tier_map.get(request.buyer_tier.lower(), AccessTier.PUBLIC)
 
+    # Enforce agent registry
+    _, max_tier = await _resolve_and_enforce_agent(request.agent_url)
+
     identity = BuyerIdentity(agency_id=request.agency_id)
     context = BuyerContext(
         identity=identity,
         is_authenticated=access_tier != AccessTier.PUBLIC,
+        agent_url=request.agent_url,
+        max_access_tier=max_tier,
     )
 
     # Process discovery
@@ -424,6 +442,7 @@ class CreateSessionRequest(BaseModel):
     agency_id: Optional[str] = None
     advertiser_id: Optional[str] = None
     is_authenticated: bool = False
+    agent_url: Optional[str] = None
 
 
 class SessionMessageRequest(BaseModel):
@@ -630,6 +649,9 @@ async def create_session(request: CreateSessionRequest):
     from ...models.buyer_identity import BuyerContext, BuyerIdentity
     from ...storage.factory import get_storage
 
+    # Enforce agent registry
+    _, max_tier = await _resolve_and_enforce_agent(request.agent_url)
+
     storage = await get_storage()
 
     identity = BuyerIdentity(
@@ -640,6 +662,8 @@ async def create_session(request: CreateSessionRequest):
     context = BuyerContext(
         identity=identity,
         is_authenticated=request.is_authenticated,
+        agent_url=request.agent_url,
+        max_access_tier=max_tier,
     )
 
     chat = ChatInterface(storage=storage)
@@ -1211,3 +1235,275 @@ def _default_device_types(inventory_type: str) -> list[int]:
         "mobile_app": [4, 5],
         "native": [2, 4, 5],
     }.get(inventory_type, [2])
+
+
+# =============================================================================
+# Agent Registry Helpers
+# =============================================================================
+
+
+async def _get_registry_service():
+    """Create an AgentRegistryService with storage + AAMP client."""
+    from ...registry import AgentRegistryService
+    from ...clients.agent_registry_client import AAMPRegistryClient
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+    settings = _get_api_settings()
+    aamp = AAMPRegistryClient(registry_url=settings.agent_registry_url)
+
+    # Build client list: AAMP primary + any extra registries
+    clients = [aamp]
+    if settings.agent_registry_extra_urls:
+        for url in settings.agent_registry_extra_urls.split(","):
+            url = url.strip()
+            if url:
+                # Extra registries use AAMP client for now (same protocol)
+                # Subclass BaseRegistryClient for vendor-specific registries
+                clients.append(AAMPRegistryClient(registry_url=url))
+
+    return AgentRegistryService(storage, registry_clients=clients)
+
+
+def _get_api_settings():
+    """Get settings for API use."""
+    from ...config import get_settings
+    return get_settings()
+
+
+async def _resolve_and_enforce_agent(
+    agent_url: Optional[str],
+) -> tuple[Optional[Any], Optional[Any]]:
+    """Resolve agent and enforce blocked status.
+
+    Returns (RegisteredAgent, AccessTier). Raises HTTPException 403
+    if the agent is blocked — zero data leakage.
+    """
+    if not agent_url:
+        return None, None
+
+    service = await _get_registry_service()
+    agent, tier = await service.resolve_agent_access(agent_url)
+
+    if agent and agent.is_blocked:
+        raise HTTPException(
+            status_code=403,
+            detail="Agent is blocked. Contact the seller operator for access.",
+        )
+
+    return agent, tier
+
+
+# =============================================================================
+# Agent Card Endpoint (Public Discovery)
+# =============================================================================
+
+
+@app.get("/.well-known/agent.json")
+async def agent_card():
+    """Serve this seller agent's card for A2A discovery.
+
+    Returns an A2A-protocol-compliant agent card describing this
+    seller's capabilities, supported protocols, and inventory types.
+    Buyer agents and registries fetch this to discover the seller.
+    """
+    from ...models.agent_registry import (
+        AgentCard,
+        AgentAuthentication,
+        AgentCapabilities,
+        AgentProvider,
+        AgentSkill,
+    )
+    from ...flows import ProductSetupFlow
+
+    settings = _get_api_settings()
+
+    # Discover inventory types from product catalog
+    inventory_types = set()
+    try:
+        flow = ProductSetupFlow()
+        await flow.kickoff()
+        for product in flow.state.products.values():
+            inventory_types.add(product.inventory_type)
+    except Exception:
+        inventory_types = {"display", "video", "ctv", "native", "mobile_app"}
+
+    card = AgentCard(
+        name=settings.seller_agent_name,
+        description=(
+            "IAB OpenDirect 2.1 compliant seller agent for programmatic "
+            "advertising. Supports product discovery, tiered pricing, "
+            "proposal evaluation, multi-round negotiation, and deal execution."
+        ),
+        url=settings.seller_agent_url,
+        version="0.1.0",
+        provider=AgentProvider(
+            name=settings.seller_organization_name,
+            url=settings.seller_agent_url,
+        ),
+        capabilities=AgentCapabilities(
+            protocols=["opendirect21", "a2a"],
+            streaming=False,
+            push_notifications=False,
+        ),
+        skills=[
+            AgentSkill(
+                id="discovery",
+                name="Inventory Discovery",
+                description="Search and browse available inventory, media kits, and packages",
+                tags=["inventory", "search", "media-kit"],
+            ),
+            AgentSkill(
+                id="pricing",
+                name="Tiered Pricing",
+                description="Get pricing based on buyer identity with volume discounts",
+                tags=["pricing", "cpm", "negotiation"],
+            ),
+            AgentSkill(
+                id="proposals",
+                name="Proposal Evaluation",
+                description="Submit and evaluate advertising proposals",
+                tags=["proposals", "evaluation", "counter-offers"],
+            ),
+            AgentSkill(
+                id="negotiation",
+                name="Multi-Round Negotiation",
+                description="Engage in automated price negotiation with strategy-based responses",
+                tags=["negotiation", "deals"],
+            ),
+            AgentSkill(
+                id="deals",
+                name="Deal Execution",
+                description="Generate OpenRTB-compatible deal IDs for DSP activation",
+                tags=["deals", "openrtb", "execution"],
+            ),
+        ],
+        authentication=AgentAuthentication(
+            schemes=["api_key", "bearer"],
+        ),
+        inventory_types=sorted(inventory_types),
+        supported_deal_types=["pg", "pmp", "preferred_deal", "private_auction"],
+    )
+
+    return card.model_dump()
+
+
+# =============================================================================
+# Agent Registry Management Endpoints (Operator-facing)
+# =============================================================================
+
+
+class DiscoverAgentRequest(BaseModel):
+    """Request to discover an agent by URL."""
+    agent_url: str
+
+
+class UpdateTrustRequest(BaseModel):
+    """Request to update an agent's trust status."""
+    trust_status: str  # TrustStatus value
+    notes: Optional[str] = None
+
+
+@app.get("/registry/agents")
+async def list_registered_agents(
+    agent_type: Optional[str] = None,
+    trust_status: Optional[str] = None,
+):
+    """List agents in the local registry.
+
+    Filterable by agent_type (buyer, seller, tool_provider, data_provider, other)
+    and trust_status (unknown, registered, approved, preferred, blocked).
+    """
+    from ...models.agent_registry import AgentType, TrustStatus
+
+    service = await _get_registry_service()
+
+    at = AgentType(agent_type) if agent_type else None
+    ts = TrustStatus(trust_status) if trust_status else None
+
+    agents = await service.list_agents(agent_type=at, trust_status=ts)
+    return {
+        "agents": [a.model_dump(mode="json") for a in agents],
+        "total": len(agents),
+    }
+
+
+@app.get("/registry/agents/{agent_id}")
+async def get_registered_agent(agent_id: str):
+    """Get details for a specific registered agent."""
+    service = await _get_registry_service()
+    agent = await service.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return agent.model_dump(mode="json")
+
+
+@app.post("/registry/agents/discover")
+async def discover_agent(request: DiscoverAgentRequest):
+    """Discover an agent by URL.
+
+    Fetches the agent's card from .well-known/agent.json, checks
+    all configured registries (AAMP + extras) for verification, and
+    registers the agent locally with appropriate trust status.
+    """
+    service = await _get_registry_service()
+    agent, tier = await service.resolve_agent_access(request.agent_url)
+
+    if not agent:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Could not fetch agent card from {request.agent_url}",
+        )
+
+    return {
+        "agent": agent.model_dump(mode="json"),
+        "max_access_tier": tier.value if tier else None,
+        "is_blocked": agent.is_blocked,
+    }
+
+
+@app.put("/registry/agents/{agent_id}/trust")
+async def update_agent_trust(agent_id: str, request: UpdateTrustRequest):
+    """Update an agent's trust status.
+
+    Use this to approve, prefer, or block agents. Trust status determines
+    the maximum access tier:
+    - unknown → PUBLIC (price ranges only)
+    - registered → SEAT (exact prices, no negotiation)
+    - approved → ADVERTISER (full access)
+    - preferred → ADVERTISER + custom pricing rules
+    - blocked → 403 rejected, zero data access
+    """
+    from ...models.agent_registry import TrustStatus, TRUST_TO_TIER_MAP
+
+    try:
+        ts = TrustStatus(request.trust_status)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid trust_status: {request.trust_status}. "
+            f"Valid values: {[s.value for s in TrustStatus]}",
+        )
+
+    service = await _get_registry_service()
+    agent = await service.update_trust_status(agent_id, ts, request.notes)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    tier = TRUST_TO_TIER_MAP.get(ts)
+    return {
+        "agent_id": agent_id,
+        "trust_status": ts.value,
+        "max_access_tier": tier.value if tier else None,
+        "notes": request.notes,
+    }
+
+
+@app.delete("/registry/agents/{agent_id}")
+async def remove_registered_agent(agent_id: str):
+    """Remove an agent from the local registry."""
+    service = await _get_registry_service()
+    removed = await service.remove_agent(agent_id)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return {"agent_id": agent_id, "status": "removed"}
