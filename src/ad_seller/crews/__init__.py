@@ -11,6 +11,7 @@ from .inventory_crews import (
     create_mobile_app_crew,
     create_native_crew,
     create_proposal_review_crew,
+    create_linear_tv_crew,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "create_mobile_app_crew",
     "create_native_crew",
     "create_proposal_review_crew",
+    "create_linear_tv_crew",
 ]

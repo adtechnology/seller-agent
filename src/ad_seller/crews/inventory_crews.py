@@ -15,6 +15,7 @@ from ..agents.level2 import (
     create_ctv_inventory_agent,
     create_mobile_app_inventory_agent,
     create_native_inventory_agent,
+    create_linear_tv_inventory_agent,
 )
 from ..agents.level3 import (
     create_pricing_agent,
@@ -24,6 +25,15 @@ from ..agents.level3 import (
     create_audience_validator_agent,
 )
 from ..config import get_settings
+from ..tools.linear import (
+    LinearPricingTool,
+    ScatterPricingTool,
+    UpfrontDealCalculator,
+    LinearAvailsTool,
+    DMAAvailsTool,
+    MakegoodPoolTool,
+    AddressableTargetingTool,
+)
 from ..tools.audience import (
     AudienceValidationTool,
     AudienceCapabilityTool,
@@ -427,6 +437,88 @@ Synthesize all inputs and provide:
             upsell_task,
             final_review_task,
         ],
+        process=Process.sequential,
+        verbose=settings.crew_verbose,
+        memory=settings.crew_memory_enabled,
+    )
+
+
+def create_linear_tv_crew() -> Crew:
+    """Create a crew for linear TV inventory operations.
+
+    Covers broadcast, cable, MVPD local avails, addressable TV, and
+    programmatic linear. Supports three seller perspectives: direct
+    publishers, MVPD operators, and reseller/SSPs.
+
+    Returns:
+        Crew: Linear TV inventory crew with pricing and availability agents
+    """
+    settings = get_settings()
+
+    linear_tv_agent = create_linear_tv_inventory_agent()
+    pricing_agent = create_pricing_agent()
+    availability_agent = create_availability_agent()
+
+    # Linear TV pricing tools
+    linear_pricing_tools = [
+        LinearPricingTool(),
+        ScatterPricingTool(),
+        UpfrontDealCalculator(),
+    ]
+
+    # Linear TV avails tools
+    linear_avails_tools = [
+        LinearAvailsTool(),
+        DMAAvailsTool(),
+        MakegoodPoolTool(),
+        AddressableTargetingTool(),
+    ]
+
+    pricing_task = Task(
+        description="""Provide linear TV inventory pricing guidance:
+- Daypart-specific rates (primetime, daytime, late night, early morning, news)
+- Upfront vs scatter pricing and rate-of-change calculations
+- Sports and event premium pricing
+- Dual currency output: both CPP and CPM for every recommendation
+- Holding company tier discounts and volume commitments
+- Reseller margin calculation for aggregated supply
+- Addressable TV CPM uplift estimates""",
+        expected_output="Linear TV pricing with dual CPP/CPM and market type breakdown",
+        agent=pricing_agent,
+        tools=linear_pricing_tools,
+    )
+
+    availability_task = Task(
+        description="""Assess linear TV inventory availability:
+- Broadcast calendar avails by network and daypart
+- Sell-through rates (primetime typically 85%+, daytime 40-60%)
+- Local DMA avails for MVPD operators
+- Makegood pool for active campaigns with underdelivery
+- Addressable TV household coverage and targeting capacity
+- Programmatic linear availability (FreeWheel biddable inventory)""",
+        expected_output="Linear TV availability with sell-through and addressable coverage",
+        agent=availability_agent,
+        tools=linear_avails_tools,
+    )
+
+    strategy_task = Task(
+        description="""Based on pricing and availability input, develop
+linear TV inventory strategy recommendations:
+- Optimal daypart allocation across broadcast and cable
+- Network mix recommendations (broadcast vs cable vs MVPD)
+- Upfront vs scatter market positioning
+- Cross-platform companion opportunities (linear + CTV + digital)
+- Deal structure recommendation (PG, PMP, or traditional IO)
+- Makegood provisions and audience guarantee strategy
+- Addressable TV overlay opportunities""",
+        expected_output="Linear TV inventory strategy with deal structure recommendation",
+        agent=linear_tv_agent,
+        context=[pricing_task, availability_task],
+    )
+
+    return Crew(
+        agents=[linear_tv_agent, pricing_agent, availability_agent],
+        tasks=[pricing_task, availability_task, strategy_task],
         process=Process.sequential,
         verbose=settings.crew_verbose,
         memory=settings.crew_memory_enabled,

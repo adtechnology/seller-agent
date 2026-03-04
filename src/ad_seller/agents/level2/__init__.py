@@ -8,6 +8,7 @@ from .video_inventory_agent import create_video_inventory_agent
 from .ctv_inventory_agent import create_ctv_inventory_agent
 from .mobile_app_inventory_agent import create_mobile_app_inventory_agent
 from .native_inventory_agent import create_native_inventory_agent
+from .linear_tv_inventory_agent import create_linear_tv_inventory_agent
 
 __all__ = [
     "create_display_inventory_agent",
@@ -15,4 +16,5 @@ __all__ = [
     "create_ctv_inventory_agent",
     "create_mobile_app_inventory_agent",
     "create_native_inventory_agent",
+    "create_linear_tv_inventory_agent",
 ]

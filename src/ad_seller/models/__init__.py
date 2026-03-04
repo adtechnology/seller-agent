@@ -86,6 +86,13 @@ from .media_kit import (
     PackageStatus,
     PublicPackageView,
 )
+from .linear_tv import (
+    Daypart,
+    LinearDeal,
+    LinearTVProduct,
+    MakegoodTerms,
+    SupplyPoolEntry,
+)
 from .negotiation import (
     NegotiationAction,
     NegotiationHistory,
@@ -238,4 +245,10 @@ __all__ = [
     "GAMTargeting",
     "GAMUnitType",
     "AudienceSegmentMapping",
+    # Linear TV models
+    "Daypart",
+    "LinearDeal",
+    "LinearTVProduct",
+    "MakegoodTerms",
+    "SupplyPoolEntry",
 ]

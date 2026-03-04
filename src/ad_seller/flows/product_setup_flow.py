@@ -257,6 +257,43 @@ class ProductSetupFlow(Flow[ProductSetupState]):
                 tags=["ctv", "premium", "streaming", "living room"],
                 is_featured=True,
             ),
+            Package(
+                package_id=f"pkg-{uuid.uuid4().hex[:8]}",
+                name="NBCU Linear TV Broadcast Bundle",
+                description="Linear TV inventory across NBC broadcast and NBCU cable networks",
+                layer=PackageLayer.SYNCED,
+                status=PackageStatus.ACTIVE,
+                placements=[
+                    PackagePlacement(
+                        product_id="prod-ltv-nbc-prime",
+                        product_name="NBC Primetime :30",
+                        ad_formats=["video"],
+                        device_types=[3, 7],
+                    ),
+                    PackagePlacement(
+                        product_id="prod-ltv-nbc-late",
+                        product_name="NBC Late Night :30",
+                        ad_formats=["video"],
+                        device_types=[3, 7],
+                    ),
+                    PackagePlacement(
+                        product_id="prod-ltv-nbcu-cable",
+                        product_name="NBCU Cable :30 (Bravo/USA/CNBC)",
+                        ad_formats=["video"],
+                        device_types=[3, 7],
+                    ),
+                ],
+                ad_formats=["video"],
+                device_types=[3, 7],  # CTV, Set Top Box
+                cat=["IAB1", "IAB19"],  # Arts & Entertainment, Sports
+                cattax=2,
+                audience_segment_ids=["3", "4", "5", "6", "7", "8"],  # Age 18-44
+                geo_targets=["US"],
+                base_price=40.0,
+                floor_price=28.0,
+                tags=["linear-tv", "broadcast", "primetime", "nbcu"],
+                is_featured=True,
+            ),
         ]
 
         for pkg in mock_packages:
@@ -277,6 +314,8 @@ class ProductSetupFlow(Flow[ProductSetupState]):
             return "native"
         if "app" in name_lower or "mobile" in name_lower:
             return "mobile_app"
+        if "linear" in name_lower or "broadcast" in name_lower or "tv " in name_lower or "cable" in name_lower:
+            return "linear_tv"
         return "display"
 
     @staticmethod
@@ -288,6 +327,7 @@ class ProductSetupFlow(Flow[ProductSetupState]):
             "ctv": ["video"],
             "mobile_app": ["banner", "video"],
             "native": ["native"],
+            "linear_tv": ["video"],
         }.get(inv_type, ["banner"])
 
     @staticmethod
@@ -299,6 +339,7 @@ class ProductSetupFlow(Flow[ProductSetupState]):
             "ctv": [3, 7],
             "mobile_app": [4, 5],
             "native": [2, 4, 5],
+            "linear_tv": [3, 7],
         }.get(inv_type, [2])
 
     @staticmethod
@@ -310,6 +351,7 @@ class ProductSetupFlow(Flow[ProductSetupState]):
             "ctv": 35.0,
             "mobile_app": 18.0,
             "native": 10.0,
+            "linear_tv": 40.0,
         }.get(inv_type, 10.0)
 
     @listen(sync_from_ad_server)
@@ -371,6 +413,67 @@ class ProductSetupFlow(Flow[ProductSetupState]):
                     "floor_cpm": 8.0,
                     "supported_deal_types": [DealType.PREFERRED_DEAL],
                     "supported_pricing_models": [PricingModel.CPM, PricingModel.CPC],
+                },
+                # Linear TV — Direct seller (NBCU)
+                {
+                    "name": "NBC Primetime :30",
+                    "description": "NBC broadcast primetime 30-second national spot",
+                    "inventory_type": "linear_tv",
+                    "base_cpm": 55.0,
+                    "floor_cpm": 40.0,
+                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED],
+                    "supported_pricing_models": [PricingModel.CPM],
+                },
+                {
+                    "name": "NBCU Cable Network :30 (Bravo/USA)",
+                    "description": "NBCU cable network 30-second spot across Bravo, USA, CNBC",
+                    "inventory_type": "linear_tv",
+                    "base_cpm": 22.0,
+                    "floor_cpm": 15.0,
+                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED, DealType.PREFERRED_DEAL],
+                    "supported_pricing_models": [PricingModel.CPM],
+                },
+                {
+                    "name": "Telemundo Primetime :30",
+                    "description": "Telemundo Spanish-language primetime 30-second spot",
+                    "inventory_type": "linear_tv",
+                    "base_cpm": 18.0,
+                    "floor_cpm": 12.0,
+                    "supported_deal_types": [
+                        DealType.PROGRAMMATIC_GUARANTEED,
+                        DealType.PREFERRED_DEAL,
+                        DealType.PRIVATE_AUCTION,
+                    ],
+                    "supported_pricing_models": [PricingModel.CPM],
+                },
+                # Linear TV — MVPD operator (Comcast/Spectrum)
+                {
+                    "name": "Comcast Local Avails — Top 10 DMAs",
+                    "description": "Comcast Xfinity local cable insertion avails in top 10 markets",
+                    "inventory_type": "linear_tv",
+                    "base_cpm": 15.0,
+                    "floor_cpm": 8.0,
+                    "supported_deal_types": [DealType.PREFERRED_DEAL, DealType.PRIVATE_AUCTION],
+                    "supported_pricing_models": [PricingModel.CPM],
+                },
+                {
+                    "name": "Comcast Addressable Linear — National",
+                    "description": "Comcast addressable linear TV with household-level targeting",
+                    "inventory_type": "linear_tv",
+                    "base_cpm": 55.0,
+                    "floor_cpm": 40.0,
+                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED, DealType.PRIVATE_AUCTION],
+                    "supported_pricing_models": [PricingModel.CPM],
+                },
+                # Linear TV — Reseller/SSP (PubMatic/Magnite)
+                {
+                    "name": "Programmatic Linear Reach — A25-54 Primetime",
+                    "description": "Aggregated primetime linear reach across multiple networks via SSP",
+                    "inventory_type": "linear_tv",
+                    "base_cpm": 30.0,
+                    "floor_cpm": 20.0,
+                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED, DealType.PRIVATE_AUCTION],
+                    "supported_pricing_models": [PricingModel.CPM],
                 },
             ]
 

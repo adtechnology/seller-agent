@@ -16,6 +16,7 @@ from ..agents.level2 import (
     create_ctv_inventory_agent,
     create_mobile_app_inventory_agent,
     create_native_inventory_agent,
+    create_linear_tv_inventory_agent,
 )
 from ..config import get_settings
 
@@ -43,6 +44,7 @@ class PublisherCrew:
         self.ctv_agent = create_ctv_inventory_agent()
         self.mobile_app_agent = create_mobile_app_inventory_agent()
         self.native_agent = create_native_inventory_agent()
+        self.linear_tv_agent = create_linear_tv_inventory_agent()
 
         self._settings = settings
 
@@ -138,6 +140,31 @@ Evaluate:
             )
             channel_tasks.append(ctv_task)
 
+        proposal_str = str(proposal_data)
+        if (
+            inventory_type == "linear_tv"
+            or "linear" in proposal_str
+            or "broadcast" in proposal_str
+            or "cable" in proposal_str
+            or "tv " in proposal_str.lower()
+        ):
+            linear_tv_task = Task(
+                description=f"""Assess this proposal from a linear TV perspective:
+
+Proposal: {proposal_data}
+
+Evaluate:
+- Daypart appropriateness and pricing tier
+- Upfront vs scatter market fit
+- Addressable TV capability and household coverage
+- Cross-platform opportunities (linear + CTV + digital)
+- Makegood provisions and audience guarantee terms
+- Dual currency assessment (CPP and CPM)""",
+                expected_output="Linear TV assessment with daypart, pricing, and deal structure recommendations",
+                agent=self.linear_tv_agent,
+            )
+            channel_tasks.append(linear_tv_task)
+
         # Create the crew
         return Crew(
             agents=[
@@ -147,6 +174,7 @@ Evaluate:
                 self.ctv_agent,
                 self.mobile_app_agent,
                 self.native_agent,
+                self.linear_tv_agent,
             ],
             tasks=[strategic_evaluation_task] + channel_tasks,
             process=Process.hierarchical,
@@ -189,6 +217,7 @@ Coordinate with inventory specialists to get channel-specific input.""",
                 self.ctv_agent,
                 self.mobile_app_agent,
                 self.native_agent,
+                self.linear_tv_agent,
             ],
             tasks=[catalog_strategy_task],
             process=Process.hierarchical,
