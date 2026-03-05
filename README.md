@@ -193,7 +193,7 @@ result = validation_tool._run(
 ### Step 1: Clone and Install
 
 ```bash
-git clone https://github.com/mobtownlabs/ad_seller_system.git
+git clone https://github.com/IABTechLab/seller-agent.git
 cd ad_seller_system
 
 # Install the package
@@ -921,7 +921,7 @@ When a PG deal is accepted, the demo:
 
 ## Related Projects
 
-- [ad-buyer-system](https://github.com/mobtownlabs/ad-buyer-system) - Buyer-side agent system (agencies, advertisers)
+- [buyer-agent](https://github.com/IABTechLab/buyer-agent) - Buyer-side agent system (agencies, advertisers)
 
 ### IAB Tech Lab Resources
 
