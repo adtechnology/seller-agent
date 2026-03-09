@@ -246,6 +246,35 @@ def _build_buyer_context(
     )
 
 
+async def _get_registry_service():
+    """Create an AgentRegistryService with storage + AAMP client."""
+    from ...registry import AgentRegistryService
+    from ...clients.agent_registry_client import AAMPRegistryClient
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+    settings = _get_api_settings()
+    aamp = AAMPRegistryClient(registry_url=settings.agent_registry_url)
+
+    # Build client list: AAMP primary + any extra registries
+    clients = [aamp]
+    if settings.agent_registry_extra_urls:
+        for url in settings.agent_registry_extra_urls.split(","):
+            url = url.strip()
+            if url:
+                # Extra registries use AAMP client for now (same protocol)
+                # Subclass BaseRegistryClient for vendor-specific registries
+                clients.append(AAMPRegistryClient(registry_url=url))
+
+    return AgentRegistryService(storage, registry_clients=clients)
+
+
+def _get_api_settings():
+    """Get settings for API use."""
+    from ...config import get_settings
+    return get_settings()
+
+
 async def _resolve_and_enforce_agent(
     agent_url: Optional[str],
 ) -> tuple[Optional[Any], Optional[Any]]:
@@ -1346,40 +1375,6 @@ def _default_device_types(inventory_type: str) -> list[int]:
         "mobile_app": [4, 5],
         "native": [2, 4, 5],
     }.get(inventory_type, [2])
-
-
-# =============================================================================
-# Agent Registry Helpers
-# =============================================================================
-
-
-async def _get_registry_service():
-    """Create an AgentRegistryService with storage + AAMP client."""
-    from ...registry import AgentRegistryService
-    from ...clients.agent_registry_client import AAMPRegistryClient
-    from ...storage.factory import get_storage
-
-    storage = await get_storage()
-    settings = _get_api_settings()
-    aamp = AAMPRegistryClient(registry_url=settings.agent_registry_url)
-
-    # Build client list: AAMP primary + any extra registries
-    clients = [aamp]
-    if settings.agent_registry_extra_urls:
-        for url in settings.agent_registry_extra_urls.split(","):
-            url = url.strip()
-            if url:
-                # Extra registries use AAMP client for now (same protocol)
-                # Subclass BaseRegistryClient for vendor-specific registries
-                clients.append(AAMPRegistryClient(registry_url=url))
-
-    return AgentRegistryService(storage, registry_clients=clients)
-
-
-def _get_api_settings():
-    """Get settings for API use."""
-    from ...config import get_settings
-    return get_settings()
 
 
 # =============================================================================
