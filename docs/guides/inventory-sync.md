@@ -115,6 +115,7 @@ The flow also creates default product definitions for finer-grained inventory:
     and `FREEWHEEL_API_KEY` settings are declared in configuration but the
     integration client is not yet implemented. Currently only GAM is supported
     for live inventory sync.
+    Track progress: [PROGRESS.md](https://github.com/IABTechLab/seller-agent/blob/main/.beads/PROGRESS.md).
 
 ---
 
@@ -154,3 +155,5 @@ data from your configured ad server (or regenerating mock data if none is config
     - Rate card integration for accurate base CPMs
     - Incremental sync with change detection
     - FreeWheel ad server support
+
+    See [PROGRESS.md](https://github.com/IABTechLab/seller-agent/blob/main/.beads/PROGRESS.md) for roadmap status.

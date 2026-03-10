@@ -237,6 +237,8 @@ You can monitor these via `GET /events`.
     - Deal registration approval gate
     - Order activation approval gate
     - Conditional auto-approve (e.g., auto-approve if deal value < $10K)
+
+    See [PROGRESS.md](https://github.com/IABTechLab/seller-agent/blob/main/.beads/PROGRESS.md) for roadmap status.
     - Approval dashboard UI
     - Webhook notifications for pending approvals
     - Slack / email integration for approval alerts

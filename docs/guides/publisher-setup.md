@@ -17,6 +17,7 @@ Step-by-step guide for publishers deploying the IAB Tech Lab Seller Agent.
     The seller agent is in active development. Some configuration is done via
     environment variables and code-level defaults rather than runtime APIs.
     This guide documents what works today and notes planned improvements.
+    See [PROGRESS.md](https://github.com/IABTechLab/seller-agent/blob/main/.beads/PROGRESS.md) for current roadmap status.
 
 ## Prerequisites
 

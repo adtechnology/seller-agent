@@ -43,7 +43,8 @@ with case-insensitive variable names.
 !!! warning "Planned Feature"
     FreeWheel integration is declared in configuration but not yet functional.
     Only Google Ad Manager is currently supported for live inventory sync.
-    See [Inventory Sync](inventory-sync.md) for details.
+    See [Inventory Sync](inventory-sync.md) for details and
+    [PROGRESS.md](https://github.com/IABTechLab/seller-agent/blob/main/.beads/PROGRESS.md) for FreeWheel (seller-dcd) status.
 
 ## LLM Configuration
 
@@ -237,3 +238,5 @@ OPENDIRECT_BASE_URL=http://localhost:3000
     - Config validation and health-check endpoint
     - Secret management integration (AWS Secrets Manager, HashiCorp Vault)
     - FreeWheel ad server integration
+
+    See [PROGRESS.md](https://github.com/IABTechLab/seller-agent/blob/main/.beads/PROGRESS.md) for roadmap status.

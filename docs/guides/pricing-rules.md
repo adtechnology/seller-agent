@@ -239,3 +239,5 @@ When enabled:
     - Rule CRUD via REST API
     - Time-bound rules (valid_from / valid_to)
     - Rule priority management
+
+    See [PROGRESS.md](https://github.com/IABTechLab/seller-agent/blob/main/.beads/PROGRESS.md) for roadmap status.
