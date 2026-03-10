@@ -1,0 +1,239 @@
+# Configuration & Environment
+
+All seller agent configuration is managed through environment variables, loaded
+via a `.env` file or the shell environment. The agent uses
+[pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
+with case-insensitive variable names.
+
+---
+
+## Core Settings
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ANTHROPIC_API_KEY` | `str` | **required** | Anthropic API key for LLM agents |
+| `SELLER_ORGANIZATION_ID` | `str` | auto-generated | Your organization ID |
+| `SELLER_ORGANIZATION_NAME` | `str` | `"Default Publisher"` | Organization display name |
+| `SELLER_AGENT_NAME` | `str` | `"Ad Seller Agent"` | Agent name shown in discovery |
+| `SELLER_AGENT_URL` | `str` | `"http://localhost:8000"` | Public URL for agent discovery (`.well-known/agent.json`) |
+
+## Protocol & API Settings
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DEFAULT_PROTOCOL` | `str` | `"opendirect21"` | Protocol selection: `opendirect21` or `a2a` |
+| `OPENDIRECT_BASE_URL` | `str` | `"http://localhost:3000"` | OpenDirect service base URL |
+| `OPENDIRECT_API_KEY` | `str` | `None` | OpenDirect API key (optional) |
+| `OPENDIRECT_TOKEN` | `str` | `None` | OpenDirect auth token (optional) |
+
+## Ad Server Settings
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `AD_SERVER_TYPE` | `str` | `"google_ad_manager"` | Ad server type: `google_ad_manager` or `freewheel` |
+| `GAM_ENABLED` | `bool` | `false` | Feature flag to enable GAM integration |
+| `GAM_NETWORK_CODE` | `str` | `None` | GAM network code (numeric ID) |
+| `GAM_JSON_KEY_PATH` | `str` | `None` | Path to GAM service account JSON key file |
+| `GAM_APPLICATION_NAME` | `str` | `"AdSellerSystem"` | Application name for GAM API requests |
+| `GAM_API_VERSION` | `str` | `"v202411"` | GAM SOAP API version |
+| `GAM_DEFAULT_TRAFFICKER_ID` | `str` | `None` | Default trafficker user ID for order creation |
+| `FREEWHEEL_API_URL` | `str` | `None` | FreeWheel API URL |
+| `FREEWHEEL_API_KEY` | `str` | `None` | FreeWheel API key |
+
+!!! warning "Planned Feature"
+    FreeWheel integration is declared in configuration but not yet functional.
+    Only Google Ad Manager is currently supported for live inventory sync.
+    See [Inventory Sync](inventory-sync.md) for details.
+
+## LLM Configuration
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DEFAULT_LLM_MODEL` | `str` | `"anthropic/claude-sonnet-4-5-20250929"` | Model for specialist agents (pricing, negotiation, etc.) |
+| `MANAGER_LLM_MODEL` | `str` | `"anthropic/claude-opus-4-20250514"` | Model for manager/orchestrator agents |
+| `LLM_TEMPERATURE` | `float` | `0.3` | LLM temperature (lower = more deterministic) |
+| `LLM_MAX_TOKENS` | `int` | `4096` | Maximum tokens per LLM response |
+
+## Database & Storage
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DATABASE_URL` | `str` | `"sqlite:///./ad_seller.db"` | Database connection URL |
+| `REDIS_URL` | `str` | `None` | Redis URL (when `STORAGE_TYPE=redis`) |
+| `STORAGE_TYPE` | `str` | `"sqlite"` | Storage backend: `sqlite` or `redis` |
+
+## Pricing Configuration
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DEFAULT_CURRENCY` | `str` | `"USD"` | Default currency for pricing |
+| `MIN_DEAL_VALUE` | `float` | `1000.0` | Minimum deal value |
+| `DEFAULT_PRICE_FLOOR_CPM` | `float` | `5.0` | Global default price floor (CPM) |
+
+## Yield Optimization
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `YIELD_OPTIMIZATION_ENABLED` | `bool` | `true` | Enable yield optimization engine |
+| `PROGRAMMATIC_FLOOR_MULTIPLIER` | `float` | `1.2` | Floor multiplier for programmatic deals |
+| `PREFERRED_DEAL_DISCOUNT_MAX` | `float` | `0.15` | Maximum discount for preferred deals (15%) |
+
+## Feature Flags
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `GAM_ENABLED` | `bool` | `false` | Enable Google Ad Manager integration |
+| `EVENT_BUS_ENABLED` | `bool` | `true` | Enable event publishing (required for approvals) |
+| `APPROVAL_GATE_ENABLED` | `bool` | `false` | Enable human-in-the-loop approval gates |
+| `AGENT_REGISTRY_ENABLED` | `bool` | `true` | Enable agent registry for A2A trust management |
+| `API_KEY_AUTH_ENABLED` | `bool` | `true` | Enable API key authentication for buyers |
+| `CREW_MEMORY_ENABLED` | `bool` | `true` | Enable CrewAI agent memory (conversation recall) |
+| `YIELD_OPTIMIZATION_ENABLED` | `bool` | `true` | Enable yield optimization engine |
+
+## Agent Registry
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `AGENT_REGISTRY_ENABLED` | `bool` | `true` | Enable agent registry |
+| `AGENT_REGISTRY_URL` | `str` | `"https://tools.iabtechlab.com/agent-registry"` | Primary IAB AAMP registry URL |
+| `AGENT_REGISTRY_EXTRA_URLS` | `str` | `""` | Additional registry URLs (comma-separated) |
+| `AUTO_APPROVE_REGISTERED_AGENTS` | `bool` | `true` | Auto-approve agents found in a registry |
+| `REQUIRE_APPROVAL_FOR_UNREGISTERED` | `bool` | `true` | Require operator approval for unknown agents |
+
+## Approval Configuration
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `APPROVAL_GATE_ENABLED` | `bool` | `false` | Enable approval gates |
+| `APPROVAL_TIMEOUT_HOURS` | `int` | `24` | Hours before a pending approval expires |
+| `APPROVAL_REQUIRED_FLOWS` | `str` | `""` | Comma-separated gate names requiring approval (e.g., `"proposal_decision,deal_registration"`) |
+
+## Session Configuration
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `SESSION_TTL_SECONDS` | `int` | `604800` | Session time-to-live in seconds (default: 7 days) |
+| `SESSION_MAX_MESSAGES` | `int` | `200` | Maximum messages per session |
+
+## CrewAI Configuration
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CREW_MEMORY_ENABLED` | `bool` | `true` | Enable agent memory |
+| `CREW_VERBOSE` | `bool` | `true` | Enable verbose CrewAI logging |
+| `CREW_MAX_ITERATIONS` | `int` | `15` | Maximum iterations per crew run |
+
+## API Key Authentication
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `API_KEY_AUTH_ENABLED` | `bool` | `true` | Enable API key authentication |
+| `API_KEY_DEFAULT_EXPIRY_DAYS` | `int` | `None` | Default key expiry in days (`None` = never expires) |
+
+---
+
+## Complete Example `.env` File
+
+```bash
+# =============================================================================
+# Required
+# =============================================================================
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxxxxxxxxxxx
+
+# =============================================================================
+# Seller Identity
+# =============================================================================
+SELLER_ORGANIZATION_ID=pub-acme-001
+SELLER_ORGANIZATION_NAME=Acme Media Group
+SELLER_AGENT_NAME=Acme Seller Agent
+SELLER_AGENT_URL=https://seller.acme-media.com
+
+# =============================================================================
+# Ad Server (Google Ad Manager)
+# =============================================================================
+AD_SERVER_TYPE=google_ad_manager
+GAM_ENABLED=true
+GAM_NETWORK_CODE=12345678
+GAM_JSON_KEY_PATH=/etc/secrets/gam-service-account.json
+GAM_APPLICATION_NAME=AcmeSellerAgent
+GAM_API_VERSION=v202411
+# GAM_DEFAULT_TRAFFICKER_ID=111222333  # Optional
+
+# =============================================================================
+# LLM
+# =============================================================================
+DEFAULT_LLM_MODEL=anthropic/claude-sonnet-4-5-20250929
+MANAGER_LLM_MODEL=anthropic/claude-opus-4-20250514
+LLM_TEMPERATURE=0.3
+LLM_MAX_TOKENS=4096
+
+# =============================================================================
+# Storage
+# =============================================================================
+STORAGE_TYPE=sqlite
+DATABASE_URL=sqlite:///./ad_seller.db
+# REDIS_URL=redis://localhost:6379/0  # For production, use Redis
+
+# =============================================================================
+# Pricing
+# =============================================================================
+DEFAULT_CURRENCY=USD
+MIN_DEAL_VALUE=1000.0
+DEFAULT_PRICE_FLOOR_CPM=5.0
+
+# =============================================================================
+# Yield Optimization
+# =============================================================================
+YIELD_OPTIMIZATION_ENABLED=true
+PROGRAMMATIC_FLOOR_MULTIPLIER=1.2
+PREFERRED_DEAL_DISCOUNT_MAX=0.15
+
+# =============================================================================
+# Feature Flags
+# =============================================================================
+EVENT_BUS_ENABLED=true
+APPROVAL_GATE_ENABLED=false
+AGENT_REGISTRY_ENABLED=true
+API_KEY_AUTH_ENABLED=true
+CREW_MEMORY_ENABLED=true
+
+# =============================================================================
+# Agent Registry
+# =============================================================================
+AGENT_REGISTRY_URL=https://tools.iabtechlab.com/agent-registry
+# AGENT_REGISTRY_EXTRA_URLS=https://other-registry.example.com
+AUTO_APPROVE_REGISTERED_AGENTS=true
+REQUIRE_APPROVAL_FOR_UNREGISTERED=true
+
+# =============================================================================
+# Approval Gates
+# =============================================================================
+# APPROVAL_GATE_ENABLED=true
+# APPROVAL_TIMEOUT_HOURS=24
+# APPROVAL_REQUIRED_FLOWS=proposal_decision
+
+# =============================================================================
+# Sessions
+# =============================================================================
+SESSION_TTL_SECONDS=604800
+SESSION_MAX_MESSAGES=200
+
+# =============================================================================
+# Protocol
+# =============================================================================
+DEFAULT_PROTOCOL=opendirect21
+OPENDIRECT_BASE_URL=http://localhost:3000
+```
+
+---
+
+## Roadmap
+
+!!! note "Planned Configuration Improvements"
+    Future releases plan to add:
+
+    - Runtime configuration API (update settings without restart)
+    - Per-product pricing overrides via API
+    - Config validation and health-check endpoint
+    - Secret management integration (AWS Secrets Manager, HashiCorp Vault)
+    - FreeWheel ad server integration

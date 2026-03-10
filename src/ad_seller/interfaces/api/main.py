@@ -19,8 +19,35 @@ from pydantic import BaseModel
 
 app = FastAPI(
     title="Ad Seller System API",
-    description="IAB OpenDirect 2.1 compliant seller API",
-    version="0.1.0",
+    description=(
+        "IAB OpenDirect 2.1 compliant seller agent for programmatic advertising. "
+        "Supports product discovery, tiered pricing, proposal evaluation, "
+        "multi-round negotiation, deal execution, order management, and change requests."
+    ),
+    version="1.0.0",
+    contact={"name": "IAB Tech Lab", "url": "https://iabtechlab.com"},
+    license_info={"name": "Apache 2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0"},
+    openapi_tags=[
+        {"name": "Core", "description": "Health check and API root"},
+        {"name": "Products", "description": "Product catalog browsing"},
+        {"name": "Pricing", "description": "Tiered pricing with buyer context"},
+        {"name": "Proposals", "description": "Proposal submission and evaluation"},
+        {"name": "Deals", "description": "Deal generation from accepted proposals"},
+        {"name": "Discovery", "description": "Natural language inventory discovery"},
+        {"name": "Events", "description": "Event bus log inspection"},
+        {"name": "Approvals", "description": "Human-in-the-loop approval workflow"},
+        {"name": "Sessions", "description": "Multi-turn buyer conversation sessions"},
+        {"name": "Negotiation", "description": "Multi-round price negotiation"},
+        {"name": "Media Kit", "description": "Public media kit and package catalog"},
+        {"name": "Packages", "description": "Package management (authenticated/admin)"},
+        {"name": "Authentication", "description": "API key lifecycle management"},
+        {"name": "Agent Registry", "description": "A2A agent discovery and trust management"},
+        {"name": "Quotes", "description": "Non-binding price quotes (IAB Deals API v1.0)"},
+        {"name": "Deal Booking", "description": "Quote-to-deal booking (IAB Deals API v1.0)"},
+        {"name": "Orders", "description": "Order state machine and lifecycle management"},
+        {"name": "Change Requests", "description": "Post-deal modification requests"},
+        {"name": "Audit", "description": "Order audit logs and operational reports"},
+    ],
 )
 
 
@@ -303,7 +330,7 @@ async def _resolve_and_enforce_agent(
 # =============================================================================
 
 
-@app.get("/")
+@app.get("/", tags=["Core"])
 async def root():
     """API root."""
     return {
@@ -313,13 +340,13 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.get("/health", tags=["Core"])
 async def health():
     """Health check endpoint."""
     return {"status": "healthy"}
 
 
-@app.get("/products")
+@app.get("/products", tags=["Products"])
 async def list_products():
     """List all products in the catalog."""
     from ...flows import ProductSetupFlow
@@ -342,7 +369,7 @@ async def list_products():
     return {"products": products}
 
 
-@app.get("/products/{product_id}")
+@app.get("/products/{product_id}", tags=["Products"])
 async def get_product(product_id: str):
     """Get a specific product."""
     from ...flows import ProductSetupFlow
@@ -365,7 +392,7 @@ async def get_product(product_id: str):
     }
 
 
-@app.post("/pricing", response_model=PricingResponse)
+@app.post("/pricing", response_model=PricingResponse, tags=["Pricing"])
 async def get_pricing(
     request: PricingRequest,
     api_key_record=Depends(_get_optional_api_key_record),
@@ -417,7 +444,7 @@ async def get_pricing(
     )
 
 
-@app.post("/proposals", response_model=ProposalResponse)
+@app.post("/proposals", response_model=ProposalResponse, tags=["Proposals"])
 async def submit_proposal(
     request: ProposalRequest,
     api_key_record=Depends(_get_optional_api_key_record),
@@ -500,7 +527,7 @@ async def submit_proposal(
     )
 
 
-@app.post("/deals", response_model=DealResponse)
+@app.post("/deals", response_model=DealResponse, tags=["Deals"])
 async def generate_deal(request: DealRequest):
     """Generate a deal from an accepted proposal."""
     from ...flows import DealGenerationFlow
@@ -532,7 +559,7 @@ async def generate_deal(request: DealRequest):
     )
 
 
-@app.post("/discovery")
+@app.post("/discovery", tags=["Discovery"])
 async def discovery_query(
     request: DiscoveryRequest,
     api_key_record=Depends(_get_optional_api_key_record),
@@ -602,7 +629,7 @@ class ApprovalDecisionRequest(BaseModel):
 # =============================================================================
 
 
-@app.get("/events")
+@app.get("/events", tags=["Events"])
 async def list_events(
     flow_id: Optional[str] = None,
     event_type: Optional[str] = None,
@@ -618,7 +645,7 @@ async def list_events(
     return {"events": [e.model_dump(mode="json") for e in events]}
 
 
-@app.get("/events/{event_id}")
+@app.get("/events/{event_id}", tags=["Events"])
 async def get_event(event_id: str):
     """Get a specific event by ID."""
     from ...events.bus import get_event_bus
@@ -634,7 +661,7 @@ async def get_event(event_id: str):
 # =============================================================================
 
 
-@app.get("/approvals")
+@app.get("/approvals", tags=["Approvals"])
 async def list_pending_approvals():
     """List all pending approval requests."""
     from ...events.approval import ApprovalGate
@@ -645,7 +672,7 @@ async def list_pending_approvals():
     return {"approvals": [r.model_dump(mode="json") for r in pending]}
 
 
-@app.get("/approvals/{approval_id}")
+@app.get("/approvals/{approval_id}", tags=["Approvals"])
 async def get_approval(approval_id: str):
     """Get a specific approval request and its response (if any)."""
     from ...events.approval import ApprovalGate
@@ -662,7 +689,7 @@ async def get_approval(approval_id: str):
     }
 
 
-@app.post("/approvals/{approval_id}/decide")
+@app.post("/approvals/{approval_id}/decide", tags=["Approvals"])
 async def decide_approval(approval_id: str, body: ApprovalDecisionRequest):
     """Submit a human decision for a pending approval."""
     from ...events.approval import ApprovalGate
@@ -682,7 +709,7 @@ async def decide_approval(approval_id: str, body: ApprovalDecisionRequest):
     return response.model_dump(mode="json")
 
 
-@app.post("/approvals/{approval_id}/resume")
+@app.post("/approvals/{approval_id}/resume", tags=["Approvals"])
 async def resume_flow(approval_id: str):
     """Resume a flow after an approval decision has been submitted.
 
@@ -779,7 +806,7 @@ async def _resume_proposal_flow(request, response):
 # =============================================================================
 
 
-@app.post("/sessions")
+@app.post("/sessions", tags=["Sessions"])
 async def create_session(
     request: CreateSessionRequest,
     api_key_record=Depends(_get_optional_api_key_record),
@@ -820,7 +847,7 @@ async def create_session(
     }
 
 
-@app.get("/sessions")
+@app.get("/sessions", tags=["Sessions"])
 async def list_sessions(
     buyer_key: Optional[str] = None,
     status: Optional[str] = None,
@@ -859,7 +886,7 @@ async def list_sessions(
     return {"sessions": results}
 
 
-@app.get("/sessions/{session_id}")
+@app.get("/sessions/{session_id}", tags=["Sessions"])
 async def get_session(session_id: str):
     """Get session details and conversation history."""
     from ...models.session import Session
@@ -884,7 +911,7 @@ async def get_session(session_id: str):
     }
 
 
-@app.post("/sessions/{session_id}/messages")
+@app.post("/sessions/{session_id}/messages", tags=["Sessions"])
 async def send_session_message(session_id: str, body: SessionMessageRequest):
     """Send a message within a session and get a response."""
     from ...interfaces.chat.main import ChatInterface
@@ -915,7 +942,7 @@ async def send_session_message(session_id: str, body: SessionMessageRequest):
     }
 
 
-@app.post("/sessions/{session_id}/close")
+@app.post("/sessions/{session_id}/close", tags=["Sessions"])
 async def close_session_endpoint(session_id: str):
     """Close a session."""
     from ...interfaces.chat.main import ChatInterface
@@ -934,7 +961,7 @@ async def close_session_endpoint(session_id: str):
 # =============================================================================
 
 
-@app.post("/proposals/{proposal_id}/counter")
+@app.post("/proposals/{proposal_id}/counter", tags=["Negotiation"])
 async def counter_proposal(
     proposal_id: str,
     request: CounterOfferRequest,
@@ -1054,7 +1081,7 @@ async def counter_proposal(
     }
 
 
-@app.get("/proposals/{proposal_id}/negotiation")
+@app.get("/proposals/{proposal_id}/negotiation", tags=["Negotiation"])
 async def get_negotiation_status(proposal_id: str):
     """Get full negotiation history for a proposal."""
     from ...models.negotiation import NegotiationHistory
@@ -1102,7 +1129,7 @@ async def _get_media_kit_service():
 # =============================================================================
 
 
-@app.get("/media-kit")
+@app.get("/media-kit", tags=["Media Kit"])
 async def media_kit_overview():
     """Public media kit catalog overview."""
     service = await _get_media_kit_service()
@@ -1117,7 +1144,7 @@ async def media_kit_overview():
     }
 
 
-@app.get("/media-kit/packages")
+@app.get("/media-kit/packages", tags=["Media Kit"])
 async def list_media_kit_packages(
     layer: Optional[str] = None,
     featured_only: bool = False,
@@ -1137,7 +1164,7 @@ async def list_media_kit_packages(
     return {"packages": [p.model_dump() for p in packages]}
 
 
-@app.get("/media-kit/packages/{package_id}")
+@app.get("/media-kit/packages/{package_id}", tags=["Media Kit"])
 async def get_media_kit_package(package_id: str):
     """Get a single package with public view."""
     service = await _get_media_kit_service()
@@ -1147,7 +1174,7 @@ async def get_media_kit_package(package_id: str):
     return package.model_dump()
 
 
-@app.post("/media-kit/search")
+@app.post("/media-kit/search", tags=["Media Kit"])
 async def search_media_kit(
     request: MediaKitSearchRequest,
     api_key_record=Depends(_get_optional_api_key_record),
@@ -1172,7 +1199,7 @@ async def search_media_kit(
 # =============================================================================
 
 
-@app.get("/packages")
+@app.get("/packages", tags=["Packages"])
 async def list_packages(
     buyer_tier: str = "public",
     agency_id: Optional[str] = None,
@@ -1206,7 +1233,7 @@ async def list_packages(
     return {"packages": [p.model_dump() for p in packages]}
 
 
-@app.get("/packages/{package_id}")
+@app.get("/packages/{package_id}", tags=["Packages"])
 async def get_package(
     package_id: str,
     buyer_tier: str = "public",
@@ -1233,7 +1260,7 @@ async def get_package(
     return package.model_dump()
 
 
-@app.post("/packages")
+@app.post("/packages", tags=["Packages"])
 async def create_package(request: PackageCreateRequest):
     """Create a curated package (Layer 2)."""
     import uuid as _uuid
@@ -1289,7 +1316,7 @@ async def create_package(request: PackageCreateRequest):
     return created.model_dump(mode="json")
 
 
-@app.put("/packages/{package_id}")
+@app.put("/packages/{package_id}", tags=["Packages"])
 async def update_package(package_id: str, updates: dict[str, Any]):
     """Update an existing package."""
     from ...events.helpers import emit_event
@@ -1308,7 +1335,7 @@ async def update_package(package_id: str, updates: dict[str, Any]):
     return package.model_dump(mode="json")
 
 
-@app.delete("/packages/{package_id}")
+@app.delete("/packages/{package_id}", tags=["Packages"])
 async def delete_package(package_id: str):
     """Archive a package (soft delete)."""
     service = await _get_media_kit_service()
@@ -1318,7 +1345,7 @@ async def delete_package(package_id: str):
     return {"package_id": package_id, "status": "archived"}
 
 
-@app.post("/packages/assemble")
+@app.post("/packages/assemble", tags=["Packages"])
 async def assemble_package(request: DynamicPackageRequest):
     """Assemble a dynamic package (Layer 3) from product IDs."""
     service = await _get_media_kit_service()
@@ -1328,7 +1355,7 @@ async def assemble_package(request: DynamicPackageRequest):
     return package.model_dump(mode="json")
 
 
-@app.post("/packages/sync")
+@app.post("/packages/sync", tags=["Packages"])
 async def sync_packages():
     """Trigger ad server inventory sync (Layer 1)."""
     from ...flows import ProductSetupFlow
@@ -1397,7 +1424,7 @@ class CreateApiKeyRequest(BaseModel):
     expires_in_days: Optional[int] = None
 
 
-@app.post("/auth/api-keys")
+@app.post("/auth/api-keys", tags=["Authentication"])
 async def create_api_key(request: CreateApiKeyRequest):
     """Create a new API key for a buyer.
 
@@ -1428,7 +1455,7 @@ async def create_api_key(request: CreateApiKeyRequest):
     return response.model_dump(mode="json")
 
 
-@app.get("/auth/api-keys")
+@app.get("/auth/api-keys", tags=["Authentication"])
 async def list_api_keys():
     """List all API keys (metadata only, no secrets)."""
     from ...auth.api_key_service import ApiKeyService
@@ -1443,7 +1470,7 @@ async def list_api_keys():
     }
 
 
-@app.get("/auth/api-keys/{key_id}")
+@app.get("/auth/api-keys/{key_id}", tags=["Authentication"])
 async def get_api_key_details(key_id: str):
     """Get details for a specific API key."""
     from ...auth.api_key_service import ApiKeyService
@@ -1457,7 +1484,7 @@ async def get_api_key_details(key_id: str):
     return info.model_dump(mode="json")
 
 
-@app.delete("/auth/api-keys/{key_id}")
+@app.delete("/auth/api-keys/{key_id}", tags=["Authentication"])
 async def revoke_api_key(key_id: str):
     """Revoke an API key. Revoked keys return 401 on use."""
     from ...auth.api_key_service import ApiKeyService
@@ -1476,7 +1503,7 @@ async def revoke_api_key(key_id: str):
 # =============================================================================
 
 
-@app.get("/.well-known/agent.json")
+@app.get("/.well-known/agent.json", tags=["Agent Registry"])
 async def agent_card():
     """Serve this seller agent's card for A2A discovery.
 
@@ -1581,7 +1608,7 @@ class UpdateTrustRequest(BaseModel):
     notes: Optional[str] = None
 
 
-@app.get("/registry/agents")
+@app.get("/registry/agents", tags=["Agent Registry"])
 async def list_registered_agents(
     agent_type: Optional[str] = None,
     trust_status: Optional[str] = None,
@@ -1605,7 +1632,7 @@ async def list_registered_agents(
     }
 
 
-@app.get("/registry/agents/{agent_id}")
+@app.get("/registry/agents/{agent_id}", tags=["Agent Registry"])
 async def get_registered_agent(agent_id: str):
     """Get details for a specific registered agent."""
     service = await _get_registry_service()
@@ -1615,7 +1642,7 @@ async def get_registered_agent(agent_id: str):
     return agent.model_dump(mode="json")
 
 
-@app.post("/registry/agents/discover")
+@app.post("/registry/agents/discover", tags=["Agent Registry"])
 async def discover_agent(request: DiscoverAgentRequest):
     """Discover an agent by URL.
 
@@ -1639,7 +1666,7 @@ async def discover_agent(request: DiscoverAgentRequest):
     }
 
 
-@app.put("/registry/agents/{agent_id}/trust")
+@app.put("/registry/agents/{agent_id}/trust", tags=["Agent Registry"])
 async def update_agent_trust(agent_id: str, request: UpdateTrustRequest):
     """Update an agent's trust status.
 
@@ -1676,7 +1703,7 @@ async def update_agent_trust(agent_id: str, request: UpdateTrustRequest):
     }
 
 
-@app.delete("/registry/agents/{agent_id}")
+@app.delete("/registry/agents/{agent_id}", tags=["Agent Registry"])
 async def remove_registered_agent(agent_id: str):
     """Remove an agent from the local registry."""
     service = await _get_registry_service()
@@ -1691,7 +1718,7 @@ async def remove_registered_agent(agent_id: str):
 # =============================================================================
 
 
-@app.post("/api/v1/quotes")
+@app.post("/api/v1/quotes", tags=["Quotes"])
 async def create_quote(
     request: QuoteRequestModel,
     api_key_record=Depends(_get_optional_api_key_record),
@@ -1858,7 +1885,7 @@ async def create_quote(
     return quote.model_dump(mode="json")
 
 
-@app.get("/api/v1/quotes/{quote_id}")
+@app.get("/api/v1/quotes/{quote_id}", tags=["Quotes"])
 async def get_quote(quote_id: str):
     """Retrieve a previously issued quote.
 
@@ -1890,7 +1917,7 @@ async def get_quote(quote_id: str):
     return quote
 
 
-@app.post("/api/v1/deals")
+@app.post("/api/v1/deals", tags=["Deal Booking"])
 async def book_deal(
     request: DealBookingRequestModel,
     api_key_record=Depends(_get_optional_api_key_record),
@@ -1982,7 +2009,7 @@ async def book_deal(
     return deal_data
 
 
-@app.get("/api/v1/deals/{deal_id}")
+@app.get("/api/v1/deals/{deal_id}", tags=["Deal Booking"])
 async def get_deal_by_id(deal_id: str):
     """Get the current status of a deal.
 
@@ -2029,7 +2056,7 @@ class TransitionOrderRequest(BaseModel):
     metadata: Optional[dict] = None
 
 
-@app.post("/api/v1/orders")
+@app.post("/api/v1/orders", tags=["Orders"])
 async def create_order(
     request: CreateOrderRequest,
     _auth: None = Depends(_get_optional_api_key_record),
@@ -2054,7 +2081,7 @@ async def create_order(
     return order_data
 
 
-@app.get("/api/v1/orders")
+@app.get("/api/v1/orders", tags=["Orders"])
 async def list_orders(
     status: Optional[str] = None,
     _auth: None = Depends(_get_optional_api_key_record),
@@ -2070,7 +2097,7 @@ async def list_orders(
     return {"orders": orders, "count": len(orders)}
 
 
-@app.get("/api/v1/orders/report")
+@app.get("/api/v1/orders/report", tags=["Orders", "Audit"])
 async def get_orders_report(
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
@@ -2138,7 +2165,7 @@ async def get_orders_report(
     }
 
 
-@app.get("/api/v1/orders/{order_id}")
+@app.get("/api/v1/orders/{order_id}", tags=["Orders"])
 async def get_order(
     order_id: str,
     _auth: None = Depends(_get_optional_api_key_record),
@@ -2158,7 +2185,7 @@ async def get_order(
     return order
 
 
-@app.get("/api/v1/orders/{order_id}/history")
+@app.get("/api/v1/orders/{order_id}/history", tags=["Orders"])
 async def get_order_history(
     order_id: str,
     _auth: None = Depends(_get_optional_api_key_record),
@@ -2186,7 +2213,7 @@ async def get_order_history(
     }
 
 
-@app.post("/api/v1/orders/{order_id}/transition")
+@app.post("/api/v1/orders/{order_id}/transition", tags=["Orders"])
 async def transition_order(
     order_id: str,
     request: TransitionOrderRequest,
@@ -2293,7 +2320,7 @@ class ReviewChangeRequestModel(BaseModel):
     reason: str = ""
 
 
-@app.post("/api/v1/change-requests")
+@app.post("/api/v1/change-requests", tags=["Change Requests"])
 async def create_change_request(
     request: CreateChangeRequestModel,
     _auth: None = Depends(_get_optional_api_key_record),
@@ -2387,7 +2414,7 @@ async def create_change_request(
     return cr_data
 
 
-@app.get("/api/v1/change-requests")
+@app.get("/api/v1/change-requests", tags=["Change Requests"])
 async def list_change_requests(
     order_id: Optional[str] = None,
     status: Optional[str] = None,
@@ -2406,7 +2433,7 @@ async def list_change_requests(
     return {"change_requests": results, "count": len(results)}
 
 
-@app.get("/api/v1/change-requests/{cr_id}")
+@app.get("/api/v1/change-requests/{cr_id}", tags=["Change Requests"])
 async def get_change_request(
     cr_id: str,
     _auth: None = Depends(_get_optional_api_key_record),
@@ -2424,7 +2451,7 @@ async def get_change_request(
     return cr
 
 
-@app.post("/api/v1/change-requests/{cr_id}/review")
+@app.post("/api/v1/change-requests/{cr_id}/review", tags=["Change Requests"])
 async def review_change_request(
     cr_id: str,
     request: ReviewChangeRequestModel,
@@ -2474,7 +2501,7 @@ async def review_change_request(
     return cr
 
 
-@app.post("/api/v1/change-requests/{cr_id}/apply")
+@app.post("/api/v1/change-requests/{cr_id}/apply", tags=["Change Requests"])
 async def apply_change_request(
     cr_id: str,
     _auth: None = Depends(_get_optional_api_key_record),
@@ -2546,7 +2573,7 @@ async def apply_change_request(
 # =============================================================================
 
 
-@app.get("/api/v1/orders/{order_id}/audit")
+@app.get("/api/v1/orders/{order_id}/audit", tags=["Audit"])
 async def get_order_audit(
     order_id: str,
     actor: Optional[str] = None,

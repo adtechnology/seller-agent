@@ -98,4 +98,5 @@ Thumbs.db
 
 # Notes logs and data
 
-docs/
+# mkdocs build output
+site/

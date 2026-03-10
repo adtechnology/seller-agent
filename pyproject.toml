@@ -49,8 +49,12 @@ dev = [
     "ruff>=0.6.0",
     "mypy>=1.11.0",
 ]
+docs = [
+    "mkdocs-material>=9.5.0",
+    "mkdocs-mermaid2-plugin>=1.1.0",
+]
 all = [
-    "ad_seller_system[redis,gam,dev]",
+    "ad_seller_system[redis,gam,dev,docs]",
 ]
 
 [project.scripts]
