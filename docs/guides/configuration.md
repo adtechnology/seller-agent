@@ -11,7 +11,7 @@ with case-insensitive variable names.
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `ANTHROPIC_API_KEY` | `str` | **required** | Anthropic API key for LLM agents |
+| `ANTHROPIC_API_KEY` | `str` | **required*** | API key for your LLM provider (see [Supported Providers](#supported-providers)) |
 | `SELLER_ORGANIZATION_ID` | `str` | auto-generated | Your organization ID |
 | `SELLER_ORGANIZATION_NAME` | `str` | `"Default Publisher"` | Organization display name |
 | `SELLER_AGENT_NAME` | `str` | `"Ad Seller Agent"` | Agent name shown in discovery |
@@ -54,6 +54,40 @@ with case-insensitive variable names.
 | `MANAGER_LLM_MODEL` | `str` | `"anthropic/claude-opus-4-20250514"` | Model for manager/orchestrator agents |
 | `LLM_TEMPERATURE` | `float` | `0.3` | LLM temperature (lower = more deterministic) |
 | `LLM_MAX_TOKENS` | `int` | `4096` | Maximum tokens per LLM response |
+
+### Supported Providers
+
+The seller agent uses CrewAI's `LLM` class, which wraps [litellm](https://docs.litellm.ai/) — supporting **100+ LLM providers** out of the box. Models are specified using litellm's `provider/model-name` format. No code changes are required to switch providers.
+
+| Provider | Model Format | API Key Variable |
+|----------|-------------|-----------------|
+| **Anthropic** (default) | `anthropic/claude-sonnet-4-5-20250929` | `ANTHROPIC_API_KEY` |
+| **OpenAI** | `openai/gpt-4o` | `OPENAI_API_KEY` |
+| **Azure OpenAI** | `azure/my-deployment` | `AZURE_API_KEY`, `AZURE_API_BASE` |
+| **Google Vertex AI** | `vertex_ai/gemini-pro` | `GOOGLE_APPLICATION_CREDENTIALS` |
+| **AWS Bedrock** | `bedrock/anthropic.claude-3-sonnet` | AWS credentials |
+| **Cohere** | `cohere/command-r-plus` | `COHERE_API_KEY` |
+| **Ollama** (local) | `ollama/llama3` | — (runs locally) |
+
+**Example — switching to OpenAI:**
+
+```bash
+DEFAULT_LLM_MODEL=openai/gpt-4o
+MANAGER_LLM_MODEL=openai/gpt-4o
+OPENAI_API_KEY=sk-xxxxx
+```
+
+**Example — local Ollama (no API key needed):**
+
+```bash
+DEFAULT_LLM_MODEL=ollama/llama3
+MANAGER_LLM_MODEL=ollama/llama3
+```
+
+!!! note "Prompt Tuning"
+    Agent prompts are tuned and tested with Claude models. Other providers work but may produce different quality results. If you switch providers, test negotiation and pricing flows to verify acceptable output quality.
+
+For the full list of supported providers, see the [litellm documentation](https://docs.litellm.ai/docs/providers).
 
 ## Database & Storage
 
@@ -137,9 +171,11 @@ with case-insensitive variable names.
 
 ```bash
 # =============================================================================
-# Required
+# LLM Provider (set the key for your chosen provider)
 # =============================================================================
 ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxxxxxxxxxxx
+# OPENAI_API_KEY=sk-xxxxx                   # For OpenAI / Azure
+# COHERE_API_KEY=xxxxx                      # For Cohere
 
 # =============================================================================
 # Seller Identity
