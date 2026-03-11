@@ -17,6 +17,7 @@ PHASE_MAP = {
     "2": ("Phase 2", "Negotiation & Order Lifecycle"),
     "3": ("Phase 3", "Platform Features"),
     "4": ("Phase 4", "Inventory Sync Enhancements"),
+    "5": ("Phase 5", "Deal Jockey"),
 }
 
 
