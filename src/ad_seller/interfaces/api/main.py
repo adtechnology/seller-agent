@@ -3779,3 +3779,286 @@ async def troubleshoot_deal_via_ssp(deal_id: str, ssp_name: str):
         result = await ssp.troubleshoot_deal(deal_id)
 
     return result.model_dump(exclude={"raw"})
+
+
+# =============================================================================
+# Curator Support
+# =============================================================================
+
+
+class CuratorRegistrationRequest(BaseModel):
+    """Request to register a new curator."""
+
+    curator_id: str
+    name: str
+    domain: str
+    curator_type: str = "full_service"  # audience, content, package, optimization, full_service
+    description: Optional[str] = None
+    fee_type: str = "percent"  # cpm_flat, percent, fixed, none
+    fee_value: float = 0.0
+    contact_email: Optional[str] = None
+    api_key: Optional[str] = None
+    audience_segments: list[str] = []
+    content_categories: list[str] = []
+    supported_deal_types: list[str] = ["pmp", "preferred", "pg"]
+
+
+class CuratedDealRequest(BaseModel):
+    """Request to create a curated deal."""
+
+    curator_id: str
+    deal_type: str = "PMP"
+    product_id: Optional[str] = None
+    max_cpm: Optional[float] = None  # Buyer's max CPM (curator fee included)
+    impressions: Optional[int] = None
+    flight_start: Optional[str] = None
+    flight_end: Optional[str] = None
+    buyer_seat_ids: list[str] = []
+    # Curator targeting overlay
+    audience_segments: list[str] = []
+    content_categories: list[str] = []
+
+
+@app.get("/api/v1/curators", tags=["Curators"])
+async def list_curators():
+    """List all registered curators.
+
+    Returns curators who can create deals against this publisher's
+    inventory. Agent Range is pre-registered as a day-one curator.
+    """
+    from ...services.curator_registry import build_curator_registry
+
+    registry = build_curator_registry()
+    curators = registry.list_active()
+
+    return {
+        "curators": [
+            {
+                "curator_id": c.curator_id,
+                "name": c.name,
+                "domain": c.domain,
+                "type": c.curator_type.value,
+                "description": c.description,
+                "fee": c.fee.model_dump(),
+                "supported_deal_types": c.supported_deal_types,
+                "is_active": c.is_active,
+            }
+            for c in curators
+        ],
+        "count": len(curators),
+    }
+
+
+@app.get("/api/v1/curators/{curator_id}", tags=["Curators"])
+async def get_curator(curator_id: str):
+    """Get details for a specific curator."""
+    from ...services.curator_registry import build_curator_registry
+
+    registry = build_curator_registry()
+    try:
+        curator = registry.get(curator_id)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "curator_not_found", "message": f"Curator '{curator_id}' not registered."},
+        )
+
+    return {
+        "curator_id": curator.curator_id,
+        "name": curator.name,
+        "domain": curator.domain,
+        "type": curator.curator_type.value,
+        "description": curator.description,
+        "fee": curator.fee.model_dump(),
+        "audience_segments": curator.audience_segments,
+        "content_categories": curator.content_categories,
+        "supported_deal_types": curator.supported_deal_types,
+        "is_active": curator.is_active,
+        "tags": curator.tags,
+    }
+
+
+@app.post("/api/v1/curators", tags=["Curators"], status_code=201)
+async def register_curator(request: CuratorRegistrationRequest):
+    """Register a new curator.
+
+    Curators can then create deals against this publisher's inventory
+    via the /api/v1/deals/curated endpoint.
+    """
+    from ...models.curator import Curator, CuratorFee, CuratorFeeType, CuratorType
+    from ...services.curator_registry import build_curator_registry
+    from ...storage.factory import get_storage
+
+    curator = Curator(
+        curator_id=request.curator_id,
+        name=request.name,
+        domain=request.domain,
+        curator_type=CuratorType(request.curator_type),
+        description=request.description,
+        fee=CuratorFee(
+            fee_type=CuratorFeeType(request.fee_type),
+            fee_value=request.fee_value,
+        ),
+        contact_email=request.contact_email,
+        api_key=request.api_key,
+        audience_segments=request.audience_segments,
+        content_categories=request.content_categories,
+        supported_deal_types=request.supported_deal_types,
+    )
+
+    # Persist to storage
+    storage = await get_storage()
+    await storage.set(f"curator:{curator.curator_id}", curator.model_dump())
+
+    return {
+        "curator_id": curator.curator_id,
+        "name": curator.name,
+        "status": "registered",
+    }
+
+
+@app.post("/api/v1/deals/curated", tags=["Curators"], status_code=201)
+async def create_curated_deal(request: CuratedDealRequest):
+    """Create a deal with curator overlay.
+
+    The curator's fee is added on top of the publisher's base price.
+    The curator appears as a node in the deal's schain. The buyer
+    pays the total CPM (publisher + curator fee).
+
+    The deal is created via the normal from-template flow, then
+    enriched with curator identity, fee, and targeting overlay.
+    """
+    import uuid as uuid_mod
+    from datetime import timedelta
+
+    from ...services.curator_registry import build_curator_registry
+    from ...models.supply_chain import SchainNode
+    from ...engines.pricing_rules_engine import PricingRulesEngine
+    from ...flows import ProductSetupFlow
+    from ...models.core import DealType
+    from ...models.pricing_tiers import TieredPricingConfig
+    from ...storage.factory import get_storage
+
+    # Get curator
+    registry = build_curator_registry()
+    try:
+        curator = registry.get(request.curator_id)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "curator_not_found", "message": f"Curator '{request.curator_id}' not registered."},
+        )
+
+    if not curator.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "curator_inactive", "message": f"Curator '{curator.name}' is not active."},
+        )
+
+    # Get base price from product catalog
+    base_cpm = 12.0  # Default
+    if request.product_id:
+        setup_flow = ProductSetupFlow()
+        await setup_flow.kickoff()
+        product = setup_flow.state.products.get(request.product_id)
+        if product:
+            base_cpm = product.base_cpm
+
+    # Calculate curated pricing
+    curated_deal = registry.create_curated_deal(
+        curator_id=request.curator_id,
+        deal_id="pending",
+        base_cpm=base_cpm,
+        audience_segments=request.audience_segments,
+        content_categories=request.content_categories,
+        impressions=request.impressions or 0,
+    )
+
+    # Check buyer's max CPM against curated price
+    if request.max_cpm is not None and request.max_cpm < curated_deal.total_cpm:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "below_curated_floor",
+                "message": f"Buyer max CPM ${request.max_cpm:.2f} is below curated price ${curated_deal.total_cpm:.2f} (base ${base_cpm:.2f} + curator fee ${curated_deal.curator_fee_cpm:.2f}).",
+                "base_cpm": base_cpm,
+                "curator_fee_cpm": curated_deal.curator_fee_cpm,
+                "total_cpm": curated_deal.total_cpm,
+                "curator": curator.name,
+            },
+        )
+
+    # Generate deal
+    now = datetime.utcnow()
+    deal_id = f"CUR-{uuid_mod.uuid4().hex[:12].upper()}"
+    flight_start = request.flight_start or now.strftime("%Y-%m-%d")
+    flight_end = request.flight_end or (now + timedelta(days=30)).strftime("%Y-%m-%d")
+
+    # Build schain with publisher + curator nodes
+    from ...config import get_settings
+    settings = get_settings()
+    seller_domain = getattr(settings, "seller_domain", "demo-publisher.example.com")
+    seller_name = getattr(settings, "seller_organization_name", "Demo Publisher")
+
+    schain = {
+        "ver": "1.0",
+        "complete": 1,
+        "nodes": [
+            # Publisher node
+            {"asi": seller_domain, "sid": "default", "hp": 1, "name": seller_name, "domain": seller_domain},
+            # Curator node
+            {"asi": curator.domain, "sid": curator.curator_id, "hp": 1, "name": curator.name, "domain": curator.domain},
+        ],
+    }
+
+    deal_data = {
+        "deal_id": deal_id,
+        "deal_type": request.deal_type,
+        "status": "confirmed",
+        "product_id": request.product_id,
+        "base_cpm": base_cpm,
+        "curator_fee_cpm": curated_deal.curator_fee_cpm,
+        "total_cpm": curated_deal.total_cpm,
+        "currency": "USD",
+        "impressions": request.impressions,
+        "flight_start": flight_start,
+        "flight_end": flight_end,
+        "buyer_seat_ids": request.buyer_seat_ids,
+        "curator": {
+            "curator_id": curator.curator_id,
+            "name": curator.name,
+            "domain": curator.domain,
+            "type": curator.curator_type.value,
+            "fee": curator.fee.model_dump(),
+        },
+        "curator_targeting": {
+            "audience_segments": request.audience_segments,
+            "content_categories": request.content_categories,
+        },
+        "schain": schain,
+        "created_at": now.isoformat() + "Z",
+    }
+
+    storage = await get_storage()
+    await storage.set_deal(deal_id, deal_data)
+
+    return {
+        "deal_id": deal_id,
+        "status": "confirmed",
+        "deal_type": request.deal_type,
+        "pricing": {
+            "base_cpm": base_cpm,
+            "curator_fee_cpm": curated_deal.curator_fee_cpm,
+            "total_cpm": curated_deal.total_cpm,
+            "currency": "USD",
+        },
+        "curator": {
+            "curator_id": curator.curator_id,
+            "name": curator.name,
+            "type": curator.curator_type.value,
+        },
+        "schain": schain,
+        "flight_start": flight_start,
+        "flight_end": flight_end,
+        "created_at": deal_data["created_at"],
+    }
