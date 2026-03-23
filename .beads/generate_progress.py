@@ -15,9 +15,8 @@ OUTPUT_PATH = BEADS_DIR / "PROGRESS.md"
 PHASE_MAP = {
     "1": ("Phase 1", "CTV/Linear Publisher Pilot"),
     "2": ("Phase 2", "Negotiation & Order Lifecycle"),
-    "3": ("Phase 3", "Platform Features"),
-    "4": ("Phase 4", "Inventory Sync Enhancements"),
-    "5": ("Phase 5", "Deal Jockey"),
+    "3": ("Phase 3", "Platform Features & Inventory Sync"),
+    "4": ("Phase 4", "DealJockey — Seller API"),
 }
 
 
