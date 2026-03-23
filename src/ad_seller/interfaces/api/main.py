@@ -4062,3 +4062,222 @@ async def create_curated_deal(request: CuratedDealRequest):
         "flight_end": flight_end,
         "created_at": deal_data["created_at"],
     }
+
+
+# =============================================================================
+# Deal Migration & Deprecation (DealJockey Phase 4)
+# =============================================================================
+
+
+class DealMigrationRequest(BaseModel):
+    """Request to migrate (replace) an existing deal."""
+
+    old_deal_id: str
+    # New deal params
+    deal_type: Optional[str] = None  # PG, PD, PA — defaults to old deal's type
+    product_id: Optional[str] = None  # defaults to old deal's product
+    max_cpm: Optional[float] = None
+    impressions: Optional[int] = None
+    flight_start: Optional[str] = None
+    flight_end: Optional[str] = None
+    buyer_seat_ids: Optional[list[str]] = None
+    reason: Optional[str] = None  # Why migrating (e.g., "better supply path")
+    buyer_identity: Optional[QuoteBuyerIdentityModel] = None
+
+
+@app.post("/api/v1/deals/{deal_id}/migrate", tags=["Deal Booking"], status_code=201)
+async def migrate_deal(
+    deal_id: str,
+    request: DealMigrationRequest,
+    api_key_record=Depends(_get_optional_api_key_record),
+):
+    """Migrate (replace) an existing deal with a new one.
+
+    Creates a replacement deal with parent_deal_id lineage pointing
+    to the old deal, then deprecates the old deal. The buyer's Deal
+    Jockey can follow the lineage chain to track deal evolution.
+
+    Returns the new deal with lineage metadata.
+    """
+    import uuid as uuid_mod
+    from datetime import timedelta
+
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+
+    # Load old deal
+    old_deal = await storage.get_deal(deal_id)
+    if not old_deal:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "deal_not_found", "message": f"Deal '{deal_id}' not found."},
+        )
+
+    # Build new deal from old deal + overrides
+    now = datetime.utcnow()
+    new_deal_id = f"DEMO-{uuid_mod.uuid4().hex[:12].upper()}"
+
+    new_deal = {
+        "deal_id": new_deal_id,
+        "deal_type": request.deal_type or old_deal.get("deal_type", "PD"),
+        "status": "confirmed",
+        "product_id": request.product_id or old_deal.get("product_id"),
+        "actual_price_cpm": request.max_cpm or old_deal.get("actual_price_cpm") or old_deal.get("pricing", {}).get("final_cpm"),
+        "currency": old_deal.get("currency", "USD"),
+        "impressions": request.impressions or old_deal.get("impressions"),
+        "flight_start": request.flight_start or old_deal.get("flight_start") or now.strftime("%Y-%m-%d"),
+        "flight_end": request.flight_end or old_deal.get("flight_end") or (now + timedelta(days=30)).strftime("%Y-%m-%d"),
+        "buyer_seat_ids": request.buyer_seat_ids or old_deal.get("buyer_seat_ids", []),
+        # Lineage
+        "parent_deal_id": deal_id,
+        "migration_reason": request.reason,
+        # Carry forward schain and activation instructions
+        "schain": old_deal.get("schain"),
+        "activation_instructions": old_deal.get("activation_instructions"),
+        "created_at": now.isoformat() + "Z",
+    }
+
+    await storage.set_deal(new_deal_id, new_deal)
+
+    # Deprecate old deal
+    old_deal["status"] = "deprecated"
+    old_deal["deprecated_at"] = now.isoformat() + "Z"
+    old_deal["deprecated_reason"] = request.reason or "Replaced by migration"
+    old_deal["replacement_deal_id"] = new_deal_id
+    await storage.set_deal(deal_id, old_deal)
+
+    return {
+        "new_deal_id": new_deal_id,
+        "old_deal_id": deal_id,
+        "status": "migrated",
+        "lineage": {
+            "parent_deal_id": deal_id,
+            "replacement_deal_id": new_deal_id,
+            "reason": request.reason,
+        },
+        "new_deal": new_deal,
+    }
+
+
+class DealDeprecationRequest(BaseModel):
+    """Request to deprecate a deal."""
+
+    reason: str
+    replacement_deal_id: Optional[str] = None  # If replaced by another deal
+
+
+@app.post("/api/v1/deals/{deal_id}/deprecate", tags=["Deal Booking"])
+async def deprecate_deal(
+    deal_id: str,
+    request: DealDeprecationRequest,
+):
+    """Deprecate a deal with reason and optional replacement.
+
+    Marks the deal as deprecated rather than cancelled — preserving
+    the history that this deal was intentionally sunset. If a
+    replacement_deal_id is provided, creates a lineage link.
+
+    The buyer's Deal Jockey uses this to:
+    - Know which deals to stop targeting
+    - Follow lineage to the replacement deal
+    - Feed SPO scoring (why was this path deprecated?)
+    """
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+
+    deal = await storage.get_deal(deal_id)
+    if not deal:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "deal_not_found", "message": f"Deal '{deal_id}' not found."},
+        )
+
+    if deal.get("status") == "deprecated":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "already_deprecated",
+                "message": f"Deal '{deal_id}' is already deprecated.",
+                "deprecated_at": deal.get("deprecated_at"),
+                "reason": deal.get("deprecated_reason"),
+            },
+        )
+
+    now = datetime.utcnow().isoformat() + "Z"
+
+    deal["status"] = "deprecated"
+    deal["deprecated_at"] = now
+    deal["deprecated_reason"] = request.reason
+    if request.replacement_deal_id:
+        deal["replacement_deal_id"] = request.replacement_deal_id
+
+    await storage.set_deal(deal_id, deal)
+
+    return {
+        "deal_id": deal_id,
+        "status": "deprecated",
+        "deprecated_at": now,
+        "reason": request.reason,
+        "replacement_deal_id": request.replacement_deal_id,
+    }
+
+
+@app.get("/api/v1/deals/{deal_id}/lineage", tags=["Deal Booking"])
+async def get_deal_lineage(deal_id: str):
+    """Get the lineage chain for a deal.
+
+    Walks parent_deal_id backwards and replacement_deal_id forwards
+    to show the full evolution of a deal through migrations.
+    """
+    from ...storage.factory import get_storage
+
+    storage = await get_storage()
+
+    chain = []
+    current_id = deal_id
+
+    # Walk backwards (parents)
+    parents = []
+    visited = set()
+    walk_id = deal_id
+    while walk_id and walk_id not in visited:
+        visited.add(walk_id)
+        deal = await storage.get_deal(walk_id)
+        if not deal:
+            break
+        parent_id = deal.get("parent_deal_id")
+        if parent_id:
+            parents.insert(0, {
+                "deal_id": parent_id,
+                "status": (await storage.get_deal(parent_id) or {}).get("status", "unknown"),
+            })
+        walk_id = parent_id
+
+    # Current deal
+    current_deal = await storage.get_deal(deal_id)
+
+    # Walk forwards (replacements)
+    replacements = []
+    visited = set()
+    walk_id = (current_deal or {}).get("replacement_deal_id")
+    while walk_id and walk_id not in visited:
+        visited.add(walk_id)
+        deal = await storage.get_deal(walk_id)
+        if not deal:
+            break
+        replacements.append({
+            "deal_id": walk_id,
+            "status": deal.get("status", "unknown"),
+            "reason": deal.get("migration_reason"),
+        })
+        walk_id = deal.get("replacement_deal_id")
+
+    return {
+        "deal_id": deal_id,
+        "status": (current_deal or {}).get("status", "unknown"),
+        "parents": parents,
+        "replacements": replacements,
+        "chain_length": len(parents) + 1 + len(replacements),
+    }
