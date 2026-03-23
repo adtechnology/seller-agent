@@ -10,12 +10,15 @@ Provides endpoints for:
 - Deal generation
 """
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Any, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Ad Seller System API",
@@ -63,6 +66,15 @@ app = FastAPI(
 async def _startup():
     from ...services.inventory_sync_scheduler import start_sync_scheduler
     start_sync_scheduler()
+
+    # Mount MCP SSE server for Claude Desktop / ChatGPT
+    try:
+        from ..mcp_server import mcp as mcp_server
+        mcp_sse_app = mcp_server.sse_app()
+        app.mount("/mcp", mcp_sse_app)
+        logger.info("MCP SSE server mounted at /mcp/sse")
+    except Exception as e:
+        logger.warning("MCP SSE server not mounted: %s", e)
 
 
 @app.on_event("shutdown")
