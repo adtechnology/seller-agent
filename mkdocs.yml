@@ -77,8 +77,8 @@ nav:
       - Buyer Agent Guide: integration/buyer-agent.md
       - Negotiation Protocol: integration/negotiation.md
   - AI Assistant Setup:
-      - Claude Desktop: guides/claude-desktop-setup.md
-      - ChatGPT / Codex: guides/chatgpt-setup.md
+      - Claude (Desktop & Web): guides/claude-desktop-setup.md
+      - ChatGPT, Codex & AI IDEs: guides/chatgpt-setup.md
       - Developer Setup: guides/developer-setup.md
   - Publisher Guide:
       - Setup Overview: guides/publisher-setup.md

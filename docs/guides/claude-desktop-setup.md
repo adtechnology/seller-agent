@@ -1,6 +1,6 @@
-# Claude Desktop Setup Guide
+# Claude Setup Guide (Desktop & Web)
 
-Connect your seller agent to Claude Desktop for conversational management of your media kit, pricing, deals, and buyer relationships.
+Connect your seller agent to Claude Desktop or Claude on the web for conversational management of your media kit, pricing, deals, and buyer relationships.
 
 ## Prerequisites
 
@@ -8,33 +8,52 @@ Your developer should have already:
 - Deployed the seller agent server
 - Connected your ad server (GAM or FreeWheel)
 - Connected SSPs (PubMatic, Index Exchange, etc.)
-- Generated a `claude_desktop_config.json` file for you
+- Generated an operator API key for you
 
 If not, see the [Developer Setup Guide](developer-setup.md) first.
 
 ## Step 1: Add the Seller Agent to Claude Desktop
 
-Your developer will give you a `claude_desktop_config.json` file. It looks like this:
+There are two ways to connect, depending on whether the seller agent is running locally or on a remote server.
+
+### Option A: Remote Server (Recommended for Production)
+
+Works on both **Claude Desktop** and **Claude on the web** (claude.ai):
+
+1. Open Claude Desktop or go to [claude.ai](https://claude.ai)
+2. Go to **Settings > Integrations**
+3. Click **"+ Add Custom Integration"**
+4. Enter your seller agent's MCP URL: `https://your-publisher.example.com/mcp/sse`
+5. If prompted for authentication, enter your operator API key
+6. Click **Save**
+
+> Available on Pro, Max, Team, and Enterprise plans. Free users get one custom integration. This is the same setup for both Claude Desktop and Claude web — the integration syncs across both.
+
+### Option B: Local Development Server
+
+For seller agents running on `localhost`:
+
+1. Open Claude Desktop
+2. Go to **Settings > Developer > Edit Config**
+3. This opens `claude_desktop_config.json`. Add:
 
 ```json
 {
   "mcpServers": {
     "seller-agent": {
-      "url": "https://your-publisher.example.com/mcp/sse",
-      "headers": {
-        "Authorization": "Bearer sk-operator-XXXXX"
+      "command": "uvicorn",
+      "args": ["ad_seller.interfaces.api.main:app", "--port", "8000"],
+      "env": {
+        "ANTHROPIC_API_KEY": "your-key"
       }
     }
   }
 }
 ```
 
-Copy this file to your Claude Desktop config directory:
+4. Save and restart Claude Desktop
 
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-Then restart Claude Desktop.
+> **Note**: The JSON config method is for **local stdio servers only**. Remote servers must use the Settings > Integrations UI.
 
 ## Step 2: First-Run Setup Wizard
 
@@ -126,6 +145,11 @@ After setup, use Claude Desktop to manage your seller agent:
 - "Why is my CTV fill rate low?"
 - "Show me my SSP routing rules"
 
-## ChatGPT / OpenAI
+## Also Works With
 
-The same MCP endpoint works with ChatGPT. See [ChatGPT Setup Guide](chatgpt-setup.md).
+The same MCP endpoint works with other AI platforms:
+
+- **[ChatGPT](chatgpt-setup.md)** — via Developer Mode Apps & Connectors
+- **[OpenAI Codex](chatgpt-setup.md#openai-codex)** — via `config.toml`
+- **[Cursor](chatgpt-setup.md#cursor)** — via `.cursor/mcp.json`
+- **[Windsurf](chatgpt-setup.md#windsurf)** — via MCP Marketplace
