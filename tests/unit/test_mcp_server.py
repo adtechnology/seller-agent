@@ -172,3 +172,25 @@ class TestGetConfig:
         config_str = json.dumps(result)
         assert "api_key" not in config_str.lower()
         assert "anthropic" not in config_str.lower()
+
+
+# =============================================================================
+# Task 13: Prompt registration tests
+# =============================================================================
+
+
+class TestPromptRegistration:
+    """Verify all 9 MCP prompts are registered."""
+
+    def test_all_prompts_registered(self):
+        """All 9 prompts should be registered on the MCP server."""
+        from ad_seller.interfaces.mcp_server import mcp
+
+        prompt_names = set()
+        for p in mcp._prompt_manager.list_prompts():
+            prompt_names.add(p.name)
+        expected = {
+            "setup", "status", "inventory", "deals", "queue",
+            "new-deal", "configure", "buyers", "help",
+        }
+        assert expected.issubset(prompt_names), f"Missing: {expected - prompt_names}"

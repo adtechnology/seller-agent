@@ -1011,6 +1011,104 @@ async def list_agents() -> str:
 
 
 # =============================================================================
+# Prompts (Slash Commands)
+# =============================================================================
+
+from mcp.server.fastmcp.prompts.base import Message
+
+
+@mcp.prompt(name="setup", description="First-time guided setup wizard")
+async def setup_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="Check setup status and walk me through configuring everything "
+                "that's incomplete. Go step by step: publisher identity, ad server, "
+                "SSPs, media kit, pricing, approval gates, and buyer agent access. "
+                "Ask me one question at a time.",
+    )]
+
+
+@mcp.prompt(name="status", description="Configuration and health overview")
+async def status_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="Show me a complete status overview: configuration state, system "
+                "health, ad server connection, SSP connectors, and any issues that "
+                "need attention.",
+    )]
+
+
+@mcp.prompt(name="inventory", description="What do I have to sell?")
+async def inventory_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="Show me my current inventory: products, media kit packages, and "
+                "sync status. Highlight anything that needs attention.",
+    )]
+
+
+@mcp.prompt(name="deals", description="Full deal status report")
+async def deals_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="Give me a full status report on all deal activity: active deals, "
+                "deals in negotiation, recently completed deals, and any deals with "
+                "issues. Include SSP distribution status.",
+    )]
+
+
+@mcp.prompt(name="queue", description="Inbound items needing action")
+async def queue_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="Show me everything in the inbound queue that needs my action: "
+                "pending deal requests, approvals waiting for my decision, and "
+                "proposals I need to review. Most urgent first.",
+    )]
+
+
+@mcp.prompt(name="new-deal", description="Guided deal creation")
+async def new_deal_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="Help me create a new deal. Walk me through it step by step: which "
+                "inventory, deal type (PG/PD/PA), pricing, targeting, and which "
+                "buyers or SSPs to distribute to.",
+    )]
+
+
+@mcp.prompt(name="configure", description="Event bus flows, approval gates, guard conditions")
+async def configure_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="Show me all configurable automation rules: event bus flows, approval "
+                "gates, and guard conditions. Tell me what each one does and let me "
+                "add, modify, or remove them.",
+    )]
+
+
+@mcp.prompt(name="buyers", description="Buyer agent activity and inbound interest")
+async def buyers_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="Show me which buyer agents have been accessing my media kit and "
+                "inventory recently. For each buyer, show what they looked at, "
+                "whether they initiated any deals, and their current trust level. "
+                "I want to know who to follow up with.",
+    )]
+
+
+@mcp.prompt(name="help", description="What can this agent do?")
+async def help_prompt() -> list[Message]:
+    return [Message(
+        role="user",
+        content="List all the things I can do with this seller agent, organized by "
+                "category. Include the slash commands available and a brief "
+                "description of each.",
+    )]
+
+
+# =============================================================================
 # .env file helper
 # =============================================================================
 
