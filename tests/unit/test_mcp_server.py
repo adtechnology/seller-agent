@@ -194,3 +194,102 @@ class TestPromptRegistration:
             "new-deal", "configure", "buyers", "help",
         }
         assert expected.issubset(prompt_names), f"Missing: {expected - prompt_names}"
+
+
+# =============================================================================
+# Task 14: get_inbound_queue tests
+# =============================================================================
+
+
+class TestGetInboundQueue:
+    """Tests for get_inbound_queue composite tool."""
+
+    @pytest.mark.asyncio
+    async def test_returns_pending_approvals_and_proposals(self):
+        from ad_seller.interfaces.mcp_server import get_inbound_queue
+        from ad_seller.events.models import (
+            ApprovalRequest, ApprovalStatus, Event, EventType,
+        )
+        from datetime import datetime, timedelta
+
+        # Create mock approval
+        future = datetime.utcnow() + timedelta(hours=12)
+        mock_approval = ApprovalRequest(
+            approval_id="apr-001",
+            event_id="evt-001",
+            flow_id="flow-001",
+            flow_type="proposal_handling",
+            gate_name="proposal_decision",
+            proposal_id="prop-001",
+            status=ApprovalStatus.PENDING,
+            expires_at=future,
+            context={"summary": "Deal from BuyerCo"},
+        )
+
+        # Create mock proposal event (no subsequent accepted/rejected/countered)
+        mock_proposal_event = Event(
+            event_id="evt-002",
+            event_type=EventType.PROPOSAL_RECEIVED,
+            proposal_id="prop-002",
+            session_id="sess-001",
+            payload={"buyer": "AcmeBuyer"},
+        )
+
+        mock_storage = AsyncMock()
+        mock_bus = AsyncMock()
+
+        # ApprovalGate.list_pending returns our mock
+        mock_gate_list = AsyncMock(return_value=[mock_approval])
+
+        # Event bus: proposal.received returns one event; accepted/rejected/countered return empty
+        async def mock_list_events(event_type=None, limit=50, **kwargs):
+            if event_type == "proposal.received":
+                return [mock_proposal_event]
+            return []
+
+        mock_bus.list_events = AsyncMock(side_effect=mock_list_events)
+
+        with patch(
+            "ad_seller.interfaces.mcp_server._get_storage",
+            new_callable=AsyncMock, return_value=mock_storage,
+        ), patch(
+            "ad_seller.interfaces.mcp_server.ApprovalGate",
+        ) as MockGate, patch(
+            "ad_seller.interfaces.mcp_server.get_event_bus",
+            new_callable=AsyncMock, return_value=mock_bus,
+        ):
+            MockGate.return_value.list_pending = mock_gate_list
+            result = json.loads(await get_inbound_queue())
+
+        assert "items" in result
+        # Should have at least 2 items: 1 approval + 1 proposal
+        assert len(result["items"]) >= 2
+        types_found = {item["type"] for item in result["items"]}
+        assert "approval" in types_found
+        assert "proposal" in types_found
+
+    @pytest.mark.asyncio
+    async def test_handles_partial_failure_with_warnings(self):
+        from ad_seller.interfaces.mcp_server import get_inbound_queue
+
+        mock_storage = AsyncMock()
+        mock_bus = AsyncMock()
+        mock_bus.list_events = AsyncMock(side_effect=Exception("Event bus down"))
+
+        # ApprovalGate works fine but returns empty list
+        mock_gate_list = AsyncMock(return_value=[])
+
+        with patch(
+            "ad_seller.interfaces.mcp_server._get_storage",
+            new_callable=AsyncMock, return_value=mock_storage,
+        ), patch(
+            "ad_seller.interfaces.mcp_server.ApprovalGate",
+        ) as MockGate, patch(
+            "ad_seller.interfaces.mcp_server.get_event_bus",
+            new_callable=AsyncMock, return_value=mock_bus,
+        ):
+            MockGate.return_value.list_pending = mock_gate_list
+            result = json.loads(await get_inbound_queue())
+
+        assert "warnings" in result
+        assert len(result["warnings"]) > 0

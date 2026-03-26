@@ -1109,6 +1109,84 @@ async def help_prompt() -> list[Message]:
 
 
 # =============================================================================
+# Inbound Queue
+# =============================================================================
+
+from ..events.approval import ApprovalGate
+from ..events.bus import get_event_bus
+
+
+@mcp.tool()
+async def get_inbound_queue(limit: int = 50) -> str:
+    """Get everything waiting for publisher action: pending approvals, unresolved
+    proposals. Returns a unified list sorted by urgency (most urgent first)."""
+    from datetime import timedelta
+
+    items: list[dict] = []
+    warnings: list[str] = []
+
+    # --- Pending approvals ---
+    try:
+        storage = await _get_storage()
+        gate = ApprovalGate(storage)
+        pending = await gate.list_pending()
+        for req in pending:
+            urgency = "normal"
+            if req.expires_at:
+                # expires_at may be naive (from datetime.utcnow); compare as naive
+                now_naive = datetime.utcnow()
+                if (req.expires_at - now_naive) < timedelta(hours=2):
+                    urgency = "high"
+
+            items.append({
+                "type": "approval",
+                "id": req.approval_id,
+                "summary": req.context.get("summary", f"{req.gate_name} for {req.flow_type}"),
+                "timestamp": req.created_at.isoformat() if req.created_at else "",
+                "from": req.context.get("buyer", ""),
+                "urgency": urgency,
+            })
+    except Exception as e:
+        warnings.append(f"Approval gate unavailable: {e}")
+
+    # --- Unresolved proposals from event bus ---
+    try:
+        bus = await get_event_bus()
+        received = await bus.list_events(event_type="proposal.received", limit=200)
+        accepted = await bus.list_events(event_type="proposal.accepted", limit=200)
+        rejected = await bus.list_events(event_type="proposal.rejected", limit=200)
+        countered = await bus.list_events(event_type="proposal.countered", limit=200)
+
+        resolved_ids = set()
+        for ev in accepted + rejected + countered:
+            if ev.proposal_id:
+                resolved_ids.add(ev.proposal_id)
+
+        for ev in received:
+            if ev.proposal_id and ev.proposal_id not in resolved_ids:
+                items.append({
+                    "type": "proposal",
+                    "id": ev.proposal_id,
+                    "summary": f"Proposal {ev.proposal_id} received",
+                    "timestamp": ev.timestamp.isoformat() if ev.timestamp else "",
+                    "from": ev.payload.get("buyer", ev.session_id or ""),
+                    "urgency": "normal",
+                })
+    except Exception as e:
+        warnings.append(f"Event bus unavailable: {e}")
+
+    # Sort by urgency (high first), then by timestamp descending
+    urgency_order = {"high": 0, "normal": 1}
+    items.sort(key=lambda x: (urgency_order.get(x["urgency"], 1), x.get("timestamp", "")))
+    items = items[:limit]
+
+    result: dict = {"items": items, "count": len(items)}
+    if warnings:
+        result["warnings"] = warnings
+    return json.dumps(result, indent=2)
+
+
+# =============================================================================
 # .env file helper
 # =============================================================================
 
