@@ -9,7 +9,7 @@ Demonstrates how the seller agent creates deals for buyers:
 3. Provides activation instructions for the DSP
 
 Compatible with traditional DSPs (TTD, Amazon DSP, DV360) and
-agentic buyer workflows (Deal Jockey sub-agent).
+agentic buyer workflows (Deal Library sub-agent).
 """
 
 from ad_seller.flows import DealRequestFlow

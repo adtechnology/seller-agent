@@ -11,7 +11,7 @@ from .audience import (
     AudienceCapabilityTool,
     CoverageCalculatorTool,
 )
-from .deal_jockey import (
+from .deal_library import (
     GetSupplyChainTool,
     GetDealPerformanceTool,
     BulkDealOperationsTool,
@@ -62,7 +62,7 @@ __all__ = [
     # GAM Audience tools (with IAB Audience Taxonomy 1.1 support)
     "ListAudienceSegmentsTool",
     "SyncGAMAudiencesTool",
-    # Deal Jockey tools
+    # Deal Library tools
     "GetSupplyChainTool",
     "GetDealPerformanceTool",
     "BulkDealOperationsTool",

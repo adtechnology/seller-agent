@@ -10,7 +10,7 @@ This flow enables the seller agent to create deals via direct request:
 - Full seller agent value for both agentic and traditional buyers
 
 Compatible with traditional DSPs (TTD, Amazon DSP, DV360) and
-agentic buyer workflows (Deal Jockey sub-agent).
+agentic buyer workflows (Deal Library sub-agent).
 """
 
 import uuid

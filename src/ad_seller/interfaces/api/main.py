@@ -2660,7 +2660,7 @@ async def get_order_audit(
 
 
 # =============================================================================
-# Template-Based Deal Creation (DealJockey Phase 4)
+# Template-Based Deal Creation (Deal Library Phase 4)
 # =============================================================================
 
 
@@ -2886,7 +2886,7 @@ async def create_deal_from_template(
 
 
 # =============================================================================
-# Supply Chain Transparency (DealJockey Phase 4)
+# Supply Chain Transparency (Deal Library Phase 4)
 # =============================================================================
 
 
@@ -2993,7 +2993,7 @@ async def get_supply_chain():
 
 
 # =============================================================================
-# Deal Performance Data (Deal Jockey Phase 5)
+# Deal Performance Data (Deal Library Phase 5)
 # =============================================================================
 
 
@@ -3044,7 +3044,7 @@ async def get_deal_performance(deal_id: str):
 
 
 # =============================================================================
-# Bulk Deal Operations (Deal Jockey Phase 5)
+# Bulk Deal Operations (Deal Library Phase 5)
 # =============================================================================
 
 
@@ -3090,7 +3090,7 @@ async def bulk_deal_operations(
 ):
     """Process a batch of deal operations (create/update/cancel).
 
-    Enables the Deal Jockey buyer agent to efficiently manage multiple
+    Enables the Deal Library buyer agent to efficiently manage multiple
     deals in a single request. Each operation is processed independently
     and returns per-operation success/failure.
     """
@@ -3466,7 +3466,7 @@ async def trigger_inventory_sync(
 
 
 # =============================================================================
-# Deal Export Formats for DSP Connectors (DealJockey Phase 4)
+# Deal Export Formats for DSP Connectors (Deal Library Phase 4)
 # =============================================================================
 
 
@@ -4077,7 +4077,7 @@ async def create_curated_deal(request: CuratedDealRequest):
 
 
 # =============================================================================
-# Deal Migration & Deprecation (DealJockey Phase 4)
+# Deal Migration & Deprecation (Deal Library Phase 4)
 # =============================================================================
 
 
@@ -4190,7 +4190,7 @@ async def deprecate_deal(
     the history that this deal was intentionally sunset. If a
     replacement_deal_id is provided, creates a lineage link.
 
-    The buyer's Deal Jockey uses this to:
+    The buyer's Deal Library uses this to:
     - Know which deals to stop targeting
     - Follow lineage to the replacement deal
     - Feed SPO scoring (why was this path deprecated?)

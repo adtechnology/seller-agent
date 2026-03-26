@@ -32,7 +32,7 @@ class BulkDealOperationsInput(BaseModel):
 class BulkDealOperationsTool(BaseTool):
     """Process a batch of deal operations via the seller API.
 
-    Enables the Deal Jockey buyer agent to efficiently manage multiple
+    Enables the Deal Library buyer agent to efficiently manage multiple
     deals in a single request. Calls POST /api/v1/deals/bulk.
     """
 

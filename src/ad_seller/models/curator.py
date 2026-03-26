@@ -8,7 +8,7 @@ They add value through audience data, content curation, brand safety,
 or cross-publisher packaging. The curator appears as a node in the
 OpenRTB schain and may take a fee on transactions.
 
-Day-one curator: Agent Range — optimizes Deal Jockey deals and curates
+Day-one curator: Agent Range — optimizes Deal Library deals and curates
 inventory for agencies using their proprietary models.
 """
 
@@ -136,7 +136,7 @@ class CuratedDeal(BaseModel):
 # Pre-configured curators
 # =============================================================================
 
-# Agent Range — day-one curator for Deal Jockey optimization
+# Agent Range — day-one curator for Deal Library optimization
 AGENT_RANGE_CURATOR = Curator(
     curator_id="agent-range",
     name="Agent Range",
@@ -149,5 +149,5 @@ AGENT_RANGE_CURATOR = Curator(
     ),
     fee=CuratorFee(fee_type=CuratorFeeType.PERCENT, fee_value=10.0),
     supported_deal_types=["pmp", "preferred", "pg", "auction_package"],
-    tags=["optimization", "ai", "deal-jockey"],
+    tags=["optimization", "ai", "deal-library"],
 )

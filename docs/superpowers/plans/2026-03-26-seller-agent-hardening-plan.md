@@ -12,16 +12,16 @@
 
 ---
 
-## Phase 0: Rename "Deal Jockey" to "Deal Library" & Lint
+## Phase 0: Rename "Deal Library" to "Deal Library" & Lint
 
-### Task 0A: Rename Deal Jockey → Deal Library
+### Task 0A: Rename Deal Library → Deal Library
 
-> **Context:** In the buyer agent, "Deal Library" is the v2 storage/schema layer (the deal data store), while "DealJockey" remains the agent name (Level 2 agent, portfolio manager role). On the seller side, "Deal Jockey" was used for the Phase 4 API layer. We are renaming the seller's "Deal Jockey" to "Deal Library" to align with the buyer's terminology — both sides use "Deal Library" for the deal data/API layer.
+> **Context:** In the buyer agent, "Deal Library" is the v2 storage/schema layer (the deal data store), while "Deal Library" remains the agent name (Level 2 agent, portfolio manager role). On the seller side, "Deal Library" was used for the Phase 4 API layer. We are renaming the seller's "Deal Library" to "Deal Library" to align with the buyer's terminology — both sides use "Deal Library" for the deal data/API layer.
 >
 > **Do NOT rename** the buyer agent's "DealJockey" agent name — that stays as-is. This task only affects the seller agent codebase.
 
 **Files:**
-- All files containing "deal jockey", "DealJockey", "Deal Jockey", "deal-jockey"
+- All files containing "deal library", "DealLibrary", "Deal Library", "deal-library"
 - `.beads/PROGRESS.md`
 - `.beads/generate_progress.py` (PHASE_MAP entry for Phase 4)
 
@@ -33,17 +33,17 @@ Document every file that contains the term.
 - [ ] **Step 2: Replace in Python source files**
 
 Replace all variants:
-- `DealJockey` → `DealLibrary`
-- `Deal Jockey` → `Deal Library`
-- `deal_jockey` → `deal_library`
-- `deal-jockey` → `deal-library`
+- `Deal Library` → `DealLibrary`
+- `Deal Library` → `Deal Library`
+- `deal_library` → `deal_library`
+- `deal-library` → `deal-library`
 
 In all `.py` files under `src/` and `tests/`.
 
-- [ ] **Step 3: Rename deal_jockey directory if it exists**
+- [ ] **Step 3: Rename deal_library directory if it exists**
 
-If `src/ad_seller/tools/deal_jockey/` exists, rename to `src/ad_seller/tools/deal_library/`.
-Update all imports that reference `tools.deal_jockey`.
+If `src/ad_seller/tools/deal_library/` exists, rename to `src/ad_seller/tools/deal_library/`.
+Update all imports that reference `tools.deal_library`.
 
 - [ ] **Step 4: Replace in documentation**
 
@@ -51,12 +51,12 @@ Replace all variants in all `.md` files under `docs/`, `README.md`, `CHANGELOG.m
 
 - [ ] **Step 5: Update PHASE_MAP in generate_progress.py**
 
-Change: `"4": ("Phase 4", "DealJockey — Seller API")`
+Change: `"4": ("Phase 4", "Deal Library — Seller API")`
 To: `"4": ("Phase 4", "Deal Library — Seller API")`
 
 - [ ] **Step 6: Update beads issue titles**
 
-For any beads issues referencing "Deal Jockey" in the title, update them:
+For any beads issues referencing "Deal Library" in the title, update them:
 ```bash
 bd update <issue-id> --title "new title"
 ```
@@ -74,7 +74,7 @@ Expected: No matches
 
 ```bash
 git add -A
-git commit -m "refactor: rename Deal Jockey to Deal Library across codebase and docs"
+git commit -m "refactor: rename Deal Library to Deal Library across codebase and docs"
 ```
 
 ---
@@ -173,8 +173,8 @@ Check if the buyer agent emits or expects events that the seller's event bus sho
 
 - [ ] **Step 6: Check for naming inconsistencies**
 
-After Task 0A renamed "Deal Jockey" → "Deal Library" on the seller side, verify no cross-references break:
-- Buyer docs referencing seller's "Deal Jockey" API
+After Task 0A renamed "Deal Library" → "Deal Library" on the seller side, verify no cross-references break:
+- Buyer docs referencing seller's "Deal Library" API
 - Buyer code importing or calling seller endpoints by old names
 - Shared documentation (root-level `.md` files in the parent directory)
 
@@ -1384,7 +1384,7 @@ Expected: Clean push, all changes on origin
 
 | Phase | Tasks | Focus |
 |-------|-------|-------|
-| 0: Rename, Lint & Compat | 0A-0C | Rename Deal Jockey → Deal Library, lint codebase, buyer agent compatibility check |
+| 0: Rename, Lint & Compat | 0A-0C | Rename Deal Library → Deal Library, lint codebase, buyer agent compatibility check |
 | A: Git Hygiene | 1-2 | Clean state, fix doc numbers |
 | B: Unit Tests | 3-9 | Pricing, negotiation, media kit, MCP, SSP, events, orders |
 | C: Integration Tests | 10-12 | E2E deal flow, MCP integration, setup wizard |
