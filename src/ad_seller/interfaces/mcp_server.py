@@ -1263,6 +1263,82 @@ async def get_buyer_activity(days: int = 7, limit: int = 50) -> str:
 
 
 # =============================================================================
+# Configuration Introspection
+# =============================================================================
+
+
+@mcp.tool()
+async def list_configurable_flows() -> str:
+    """Introspect current automation config: approval gates, guard conditions,
+    and event bus subscriptions. Shows what can be customized."""
+    from ..models.order_state_machine import _build_default_rules
+
+    settings = _get_settings()
+
+    # --- Approval gates ---
+    required = settings.approval_required_flows
+    if isinstance(required, str):
+        required_list = [f.strip() for f in required.split(",") if f.strip()]
+    else:
+        required_list = list(required) if required else []
+
+    approval_gates = {
+        "enabled": settings.approval_gate_enabled,
+        "timeout_hours": settings.approval_timeout_hours,
+        "required_flows": required_list,
+        "configurable": True,
+        "hint": "Use set_approval_gates to enable/disable, change timeout, or "
+                "update which flows require human approval.",
+    }
+
+    # --- Guard conditions from OrderStateMachine ---
+    rules = _build_default_rules()
+    guard_rules = []
+    for rule in rules:
+        guard_rules.append({
+            "from_status": rule.from_status.value,
+            "to_status": rule.to_status.value,
+            "description": rule.description,
+            "has_guard": rule.guard is not None,
+        })
+
+    guard_conditions = {
+        "rules": guard_rules,
+        "configurable": True,
+        "hint": "Guard conditions control which order state transitions are "
+                "allowed. Custom guards can be added via OrderStateMachine.add_rule().",
+    }
+
+    # --- Event bus subscriptions (runtime only) ---
+    event_flows_list = []
+    try:
+        bus = await get_event_bus()
+        subscribers = getattr(bus, "_subscribers", {})
+        for event_type, subs in subscribers.items():
+            event_flows_list.append({
+                "event_type": event_type,
+                "subscriber_count": len(subs),
+            })
+    except Exception:
+        pass
+
+    event_flows = {
+        "subscriptions": event_flows_list,
+        "configurable": False,
+        "hint": "Event bus subscriptions are runtime-only. They reflect what is "
+                "actively listening in the current process. On a fresh start with "
+                "no flows triggered, this section will be empty.",
+    }
+
+    result = {
+        "approval_gates": approval_gates,
+        "guard_conditions": guard_conditions,
+        "event_flows": event_flows,
+    }
+    return json.dumps(result, indent=2)
+
+
+# =============================================================================
 # .env file helper
 # =============================================================================
 

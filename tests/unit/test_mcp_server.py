@@ -378,3 +378,86 @@ class TestGetBuyerActivity:
 
         assert result["buyers"] == []
         assert result["count"] == 0
+
+
+# =============================================================================
+# Task 16: list_configurable_flows tests
+# =============================================================================
+
+
+class TestListConfigurableFlows:
+    """Tests for list_configurable_flows composite tool."""
+
+    @pytest.mark.asyncio
+    async def test_returns_approval_gate_config(self):
+        from ad_seller.interfaces.mcp_server import list_configurable_flows
+
+        settings = _make_settings(
+            approval_gate_enabled=True,
+            approval_timeout_hours=48,
+            approval_required_flows="proposal_decision,deal_registration",
+        )
+
+        mock_bus = AsyncMock()
+        mock_bus._subscribers = {"proposal.received": [lambda e: None]}
+
+        with patch(
+            "ad_seller.interfaces.mcp_server._get_settings", return_value=settings,
+        ), patch(
+            "ad_seller.interfaces.mcp_server.get_event_bus",
+            new_callable=AsyncMock, return_value=mock_bus,
+        ):
+            result = json.loads(await list_configurable_flows())
+
+        ag = result["approval_gates"]
+        assert ag["enabled"] is True
+        assert ag["timeout_hours"] == 48
+        assert "proposal_decision" in ag["required_flows"]
+        assert ag["configurable"] is True
+
+    @pytest.mark.asyncio
+    async def test_returns_guard_conditions(self):
+        from ad_seller.interfaces.mcp_server import list_configurable_flows
+
+        settings = _make_settings()
+
+        mock_bus = AsyncMock()
+        mock_bus._subscribers = {}
+
+        with patch(
+            "ad_seller.interfaces.mcp_server._get_settings", return_value=settings,
+        ), patch(
+            "ad_seller.interfaces.mcp_server.get_event_bus",
+            new_callable=AsyncMock, return_value=mock_bus,
+        ):
+            result = json.loads(await list_configurable_flows())
+
+        gc = result["guard_conditions"]
+        assert len(gc["rules"]) > 0
+        # Each rule should have from/to/description
+        rule = gc["rules"][0]
+        assert "from_status" in rule
+        assert "to_status" in rule
+        assert "description" in rule
+        assert gc["configurable"] is True
+
+    @pytest.mark.asyncio
+    async def test_each_section_has_configurable_hint(self):
+        from ad_seller.interfaces.mcp_server import list_configurable_flows
+
+        settings = _make_settings()
+
+        mock_bus = AsyncMock()
+        mock_bus._subscribers = {}
+
+        with patch(
+            "ad_seller.interfaces.mcp_server._get_settings", return_value=settings,
+        ), patch(
+            "ad_seller.interfaces.mcp_server.get_event_bus",
+            new_callable=AsyncMock, return_value=mock_bus,
+        ):
+            result = json.loads(await list_configurable_flows())
+
+        for section in ["approval_gates", "guard_conditions", "event_flows"]:
+            assert section in result, f"Missing section: {section}"
+            assert "configurable" in result[section], f"No configurable hint in {section}"
