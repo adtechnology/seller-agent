@@ -9,7 +9,7 @@ An AI-powered inventory management system for **publishers and SSPs** to automat
 
 ## What This Does
 
-- **Manage your seller agent from Claude** (desktop or web) — interactive setup wizard + 45+ MCP tools for day-to-day operations
+- **Manage your seller agent from Claude** (desktop or web) — interactive setup wizard + 41 MCP tools for day-to-day operations
 - **Expose your inventory** via a tiered Media Kit with public and authenticated views
 - **Automate deal negotiations** with AI agents that understand your pricing rules
 - **Offer tiered pricing** based on buyer identity (public, seat, agency, advertiser)
@@ -28,9 +28,9 @@ The seller agent exposes four communication interfaces:
 
 | Interface | Protocol | Use Case |
 |-----------|----------|----------|
-| **MCP** | `/mcp/sse` | Primary interface — 45+ tools for Claude, ChatGPT, Codex, Cursor, and buyer agents |
+| **MCP** | `/mcp/sse` | Primary interface — 41 tools for Claude, ChatGPT, Codex, Cursor, and buyer agents |
 | **A2A** | `/a2a/{agent}/jsonrpc` | Conversational JSON-RPC 2.0 for natural language queries |
-| **REST** | `/api/v1/*` | Programmatic access — 70+ endpoints across 15 groups |
+| **REST** | `/api/v1/*` | Programmatic access — 82 endpoints across 15 groups |
 | **Chat** | `/chat` | Web-based conversational interface for human buyers |
 
 > [Protocol Documentation](https://iabtechlab.github.io/seller-agent/api/mcp/)
@@ -119,7 +119,7 @@ The wizard guides you through: publisher identity → agent behavior → media k
 
 ## Key Features
 
-### MCP Tools (45+ tools for Claude / ChatGPT / Codex / Cursor)
+### MCP Tools (41 tools for Claude / ChatGPT / Codex / Cursor)
 
 | Category | Tools | Examples |
 |----------|-------|---------|
@@ -191,7 +191,7 @@ FreeWheel publishers can choose `FREEWHEEL_INVENTORY_MODE=deals_only` (default) 
 
 ## API Reference
 
-70+ endpoints across 15 groups:
+82 endpoints across 15 groups:
 
 | Group | Endpoints | Description |
 |-------|-----------|-------------|

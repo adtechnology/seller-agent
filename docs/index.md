@@ -2,7 +2,7 @@
 
 The Ad Seller Agent is an **IAB OpenDirect 2.1 compliant** programmatic advertising seller system. It enables automated ad selling through AI agents, supporting the full lifecycle from inventory discovery through deal execution, SSP distribution, and post-deal management.
 
-**Manage everything from Claude, ChatGPT, or any MCP-compatible AI assistant** — the seller agent exposes 45+ MCP tools for conversational setup and day-to-day operations. An interactive setup wizard walks publishers through configuration step by step.
+**Manage everything from Claude, ChatGPT, or any MCP-compatible AI assistant** — the seller agent exposes 41 MCP tools for conversational setup and day-to-day operations. An interactive setup wizard walks publishers through configuration step by step.
 
 Part of the IAB Tech Lab Agent Ecosystem --- see also the [Buyer Agent](https://iabtechlab.github.io/buyer-agent/).
 
@@ -10,14 +10,14 @@ Part of the IAB Tech Lab Agent Ecosystem --- see also the [Buyer Agent](https://
 
 | Protocol | Endpoint | Best For |
 |----------|----------|----------|
-| **[MCP](api/mcp.md)** | `/mcp/sse` | Primary interface — 45+ tools for Claude, ChatGPT, Codex, Cursor, and buyer agents |
+| **[MCP](api/mcp.md)** | `/mcp/sse` | Primary interface — 41 tools for Claude, ChatGPT, Codex, Cursor, and buyer agents |
 | **[A2A](api/a2a.md)** | `/a2a/seller/jsonrpc` | Conversational agent interactions — natural language, multi-turn |
-| **[REST API](api/overview.md)** | `/api/v1/*` | Programmatic access — 70+ endpoints across 15 groups |
+| **[REST API](api/overview.md)** | `/api/v1/*` | Programmatic access — 82 endpoints across 15 groups |
 
 ## Key Capabilities
 
-- **45+ MCP tools** for Claude, ChatGPT, Codex, Cursor, and Windsurf — interactive setup wizard + full operations
-- **70+ REST endpoints** across 15 categories covering the complete ad selling workflow
+- **41 MCP tools** for Claude, ChatGPT, Codex, Cursor, and Windsurf — interactive setup wizard + full operations
+- **82 REST endpoints** across 15 categories covering the complete ad selling workflow
 - **Pluggable ad server** support — Google Ad Manager and FreeWheel (Streaming Hub + Buyer Cloud)
 - **Multi-SSP distribution** — PubMatic (MCP), Index Exchange (REST), Magnite (REST) with routing rules
 - **IAB Deals API v1.0** — standardized deal push to buyer DSPs
@@ -54,8 +54,8 @@ Part of the IAB Tech Lab Agent Ecosystem --- see also the [Buyer Agent](https://
 
 ### API Reference
 
-- [API Overview](api/overview.md) --- all 70+ endpoints grouped by tag
-- [MCP Protocol](api/mcp.md) --- 45+ MCP tools for Claude, ChatGPT, and buyer agents
+- [API Overview](api/overview.md) --- all 82 endpoints grouped by tag
+- [MCP Protocol](api/mcp.md) --- 41 MCP tools for Claude, ChatGPT, and buyer agents
 - [A2A Protocol](api/a2a.md) --- conversational agent-to-agent interface
 - [Agent Discovery](api/agent-discovery.md) --- `/.well-known/agent.json` and trust registry
 - [Authentication](api/authentication.md) --- API keys, access tiers, and agent trust

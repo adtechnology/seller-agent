@@ -43,7 +43,7 @@ Packages are auto-created when you sync inventory from Google Ad Manager (or Fre
 
 ```bash
 # Trigger an inventory sync
-curl -X POST http://localhost:8001/packages/sync
+curl -X POST http://localhost:8000/packages/sync
 ```
 
 See [Inventory Sync](inventory-sync.md) for GAM connection setup and classification rules.
@@ -53,7 +53,7 @@ See [Inventory Sync](inventory-sync.md) for GAM connection setup and classificat
 Manually create branded packages that bundle specific products with custom pricing, targeting, and metadata.
 
 ```bash
-curl -X POST http://localhost:8001/packages \
+curl -X POST http://localhost:8000/packages \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Sports Premium Video",
@@ -88,7 +88,7 @@ curl -X POST http://localhost:8001/packages \
 Buyer or seller agents can assemble custom packages on the fly from product IDs. The system computes blended pricing and merges inventory characteristics automatically.
 
 ```bash
-curl -X POST http://localhost:8001/packages/assemble \
+curl -X POST http://localhost:8000/packages/assemble \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Custom CTV + Mobile Bundle",
@@ -144,7 +144,7 @@ These are the endpoints buyer agents use to browse your media kit without authen
 ### Media Kit Overview
 
 ```bash
-curl http://localhost:8001/media-kit
+curl http://localhost:8000/media-kit
 ```
 
 Response:
@@ -172,7 +172,7 @@ Response:
 ### Search Packages
 
 ```bash
-curl -X POST http://localhost:8001/media-kit/search \
+curl -X POST http://localhost:8000/media-kit/search \
   -H "Content-Type: application/json" \
   -d '{"query": "sports video"}'
 ```
@@ -196,7 +196,7 @@ These endpoints require an `X-API-Key` header and return richer data including e
 ### Authenticated Package Response
 
 ```bash
-curl http://localhost:8001/packages/pkg-abc12345 \
+curl http://localhost:8000/packages/pkg-abc12345 \
   -H "X-API-Key: buyer-key-123"
 ```
 
@@ -239,31 +239,31 @@ curl http://localhost:8001/packages/pkg-abc12345 \
 
 1. **Sync inventory** from your ad server to create Layer 1 packages:
    ```bash
-   curl -X POST http://localhost:8001/packages/sync
+   curl -X POST http://localhost:8000/packages/sync
    ```
 
 2. **Review synced packages** — they start as DRAFT:
    ```bash
-   curl http://localhost:8001/packages?layer=synced
+   curl http://localhost:8000/packages?layer=synced
    ```
 
 3. **Create curated packages** for premium bundles you want to feature:
    ```bash
-   curl -X POST http://localhost:8001/packages \
+   curl -X POST http://localhost:8000/packages \
      -H "Content-Type: application/json" \
      -d '{"name": "...", "product_ids": [...], "is_featured": true}'
    ```
 
 4. **Mark packages as featured** to highlight them in the media kit overview:
    ```bash
-   curl -X PUT http://localhost:8001/packages/pkg-12345 \
+   curl -X PUT http://localhost:8000/packages/pkg-12345 \
      -H "Content-Type: application/json" \
      -d '{"is_featured": true, "seasonal_label": "Holiday 2024"}'
    ```
 
 5. **Archive outdated packages** (soft delete):
    ```bash
-   curl -X DELETE http://localhost:8001/packages/pkg-old-123
+   curl -X DELETE http://localhost:8000/packages/pkg-old-123
    ```
 
 ### Package Lifecycle
