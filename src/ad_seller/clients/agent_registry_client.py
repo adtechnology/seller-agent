@@ -42,9 +42,7 @@ class BaseRegistryClient(ABC):
         self.registry_url = registry_url.rstrip("/")
 
     @abstractmethod
-    async def verify_registration(
-        self, agent_url: str
-    ) -> tuple[bool, Optional[str]]:
+    async def verify_registration(self, agent_url: str) -> tuple[bool, Optional[str]]:
         """Check if an agent URL is registered in this registry.
 
         Returns:
@@ -73,9 +71,7 @@ class BaseRegistryClient(ABC):
 # =============================================================================
 
 
-async def fetch_agent_card(
-    agent_url: str, timeout: float = 15.0
-) -> Optional[AgentCard]:
+async def fetch_agent_card(agent_url: str, timeout: float = 15.0) -> Optional[AgentCard]:
     """Fetch an agent's card from its .well-known endpoint.
 
     This is registry-independent — any A2A-compliant agent can serve
@@ -133,9 +129,7 @@ class AAMPRegistryClient(BaseRegistryClient):
             registry_url=registry_url,
         )
 
-    async def verify_registration(
-        self, agent_url: str
-    ) -> tuple[bool, Optional[str]]:
+    async def verify_registration(self, agent_url: str) -> tuple[bool, Optional[str]]:
         """Check if an agent URL is registered in AAMP.
 
         STUB: Returns True for known IAB Tech Lab test URLs.
@@ -149,9 +143,7 @@ class AAMPRegistryClient(BaseRegistryClient):
             return True, ext_id
 
         # Stub: unknown agents are not registered
-        logger.debug(
-            "[STUB] AAMP verify_registration(%s) → not registered", agent_url
-        )
+        logger.debug("[STUB] AAMP verify_registration(%s) → not registered", agent_url)
         return False, None
 
     async def lookup_agent(self, agent_id: str) -> Optional[dict]:

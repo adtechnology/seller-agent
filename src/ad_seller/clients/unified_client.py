@@ -205,9 +205,7 @@ class UnifiedClient:
         """List products."""
         client = self._get_client(protocol)
         try:
-            result = await client.list_products(
-                seller_organization_id=seller_organization_id
-            )
+            result = await client.list_products(seller_organization_id=seller_organization_id)
             return UnifiedResult(
                 success=True,
                 data=result,

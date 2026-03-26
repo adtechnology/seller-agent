@@ -25,7 +25,7 @@ Usage:
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -46,13 +46,16 @@ mcp = FastMCP(
 # Helper: get settings and storage
 # =============================================================================
 
+
 def _get_settings():
     from ..config import get_settings
+
     return get_settings()
 
 
 async def _get_storage():
     from ..storage.factory import get_storage
+
     return await get_storage()
 
 
@@ -66,7 +69,7 @@ async def get_setup_status() -> str:
     """Check what's configured and what's missing. Use this on first connection
     to determine if the setup wizard should launch."""
     settings = _get_settings()
-    storage = await _get_storage()
+    await _get_storage()  # verify storage is accessible
 
     # Check each area
     identity_configured = settings.seller_organization_name != "Default Publisher"
@@ -77,20 +80,30 @@ async def get_setup_status() -> str:
     packages = []
     try:
         from ..engines.media_kit_service import MediaKitService
+
         service = MediaKitService()
         packages = await service.list_packages_public()
     except Exception:
         pass
 
     status = {
-        "publisher_identity": {"configured": identity_configured, "name": settings.seller_organization_name},
+        "publisher_identity": {
+            "configured": identity_configured,
+            "name": settings.seller_organization_name,
+        },
         "ad_server": {
             "configured": ad_server_configured,
             "type": settings.ad_server_type if ad_server_configured else None,
         },
-        "ssp_connectors": {"configured": ssp_configured, "connectors": settings.ssp_connectors or "none"},
+        "ssp_connectors": {
+            "configured": ssp_configured,
+            "connectors": settings.ssp_connectors or "none",
+        },
         "media_kit": {"configured": len(packages) > 0, "package_count": len(packages)},
-        "pricing": {"floor_cpm": settings.default_price_floor_cpm, "currency": settings.default_currency},
+        "pricing": {
+            "floor_cpm": settings.default_price_floor_cpm,
+            "currency": settings.default_currency,
+        },
         "approval_gates": {"enabled": settings.approval_gate_enabled},
         "setup_complete": all([identity_configured, ad_server_configured, len(packages) > 0]),
     }
@@ -113,7 +126,7 @@ async def health_check() -> str:
 
     # Storage
     try:
-        storage = await _get_storage()
+        await _get_storage()
         results["checks"]["storage"] = "ok"
     except Exception as e:
         results["checks"]["storage"] = f"error: {e}"
@@ -124,7 +137,8 @@ async def health_check() -> str:
     if settings.gam_network_code or settings.freewheel_sh_mcp_url:
         try:
             from ..clients.ad_server_base import get_ad_server_client
-            client = get_ad_server_client()
+
+            get_ad_server_client()
             results["checks"]["ad_server"] = f"configured ({settings.ad_server_type})"
         except Exception as e:
             results["checks"]["ad_server"] = f"error: {e}"
@@ -144,38 +158,43 @@ async def health_check() -> str:
 async def get_config() -> str:
     """Get current configuration summary (no secrets)."""
     settings = _get_settings()
-    return json.dumps({
-        "publisher": {
-            "name": settings.seller_organization_name,
-            "org_id": settings.seller_organization_id,
+    return json.dumps(
+        {
+            "publisher": {
+                "name": settings.seller_organization_name,
+                "org_id": settings.seller_organization_id,
+            },
+            "ad_server": {
+                "type": settings.ad_server_type,
+                "gam_enabled": settings.gam_enabled,
+                "freewheel_enabled": settings.freewheel_enabled,
+                "freewheel_inventory_mode": getattr(
+                    settings, "freewheel_inventory_mode", "deals_only"
+                ),
+            },
+            "ssp": {
+                "connectors": settings.ssp_connectors or "none",
+                "routing_rules": settings.ssp_routing_rules or "none",
+            },
+            "pricing": {
+                "currency": settings.default_currency,
+                "floor_cpm": settings.default_price_floor_cpm,
+                "yield_optimization": settings.yield_optimization_enabled,
+                "pg_floor_multiplier": settings.programmatic_floor_multiplier,
+                "pd_discount_max": settings.preferred_deal_discount_max,
+            },
+            "approval_gates": {
+                "enabled": settings.approval_gate_enabled,
+                "timeout_hours": settings.approval_timeout_hours,
+                "required_flows": settings.approval_required_flows or "none",
+            },
+            "agent_registry": {
+                "enabled": settings.agent_registry_enabled,
+                "url": settings.agent_registry_url,
+            },
         },
-        "ad_server": {
-            "type": settings.ad_server_type,
-            "gam_enabled": settings.gam_enabled,
-            "freewheel_enabled": settings.freewheel_enabled,
-            "freewheel_inventory_mode": getattr(settings, "freewheel_inventory_mode", "deals_only"),
-        },
-        "ssp": {
-            "connectors": settings.ssp_connectors or "none",
-            "routing_rules": settings.ssp_routing_rules or "none",
-        },
-        "pricing": {
-            "currency": settings.default_currency,
-            "floor_cpm": settings.default_price_floor_cpm,
-            "yield_optimization": settings.yield_optimization_enabled,
-            "pg_floor_multiplier": settings.programmatic_floor_multiplier,
-            "pd_discount_max": settings.preferred_deal_discount_max,
-        },
-        "approval_gates": {
-            "enabled": settings.approval_gate_enabled,
-            "timeout_hours": settings.approval_timeout_hours,
-            "required_flows": settings.approval_required_flows or "none",
-        },
-        "agent_registry": {
-            "enabled": settings.agent_registry_enabled,
-            "url": settings.agent_registry_url,
-        },
-    }, indent=2)
+        indent=2,
+    )
 
 
 # =============================================================================
@@ -194,13 +213,15 @@ async def set_publisher_identity(name: str, domain: str = "", org_id: str = "") 
     if org_id:
         _update_env("SELLER_ORGANIZATION_ID", org_id)
 
-    return json.dumps({
-        "status": "updated",
-        "name": name,
-        "domain": domain or "(unchanged)",
-        "org_id": org_id or "(unchanged)",
-        "note": "Restart the server for changes to take effect.",
-    })
+    return json.dumps(
+        {
+            "status": "updated",
+            "name": name,
+            "domain": domain or "(unchanged)",
+            "org_id": org_id or "(unchanged)",
+            "note": "Restart the server for changes to take effect.",
+        }
+    )
 
 
 # =============================================================================
@@ -218,14 +239,16 @@ async def list_products(limit: int = 50) -> str:
 
     products = []
     for pid, product in list(flow.state.products.items())[:limit]:
-        products.append({
-            "product_id": pid,
-            "name": product.name,
-            "inventory_type": product.inventory_type,
-            "base_cpm": product.base_cpm,
-            "floor_cpm": product.floor_cpm,
-            "deal_types": [dt.value for dt in product.supported_deal_types],
-        })
+        products.append(
+            {
+                "product_id": pid,
+                "name": product.name,
+                "inventory_type": product.inventory_type,
+                "base_cpm": product.base_cpm,
+                "floor_cpm": product.floor_cpm,
+                "deal_types": [dt.value for dt in product.supported_deal_types],
+            }
+        )
 
     return json.dumps({"products": products, "count": len(products)}, indent=2)
 
@@ -244,6 +267,7 @@ async def sync_inventory(incremental: bool = False) -> str:
 async def get_sync_status() -> str:
     """Check the status of the inventory sync scheduler."""
     from ..services.inventory_sync_scheduler import get_sync_status
+
     return json.dumps(get_sync_status(), indent=2)
 
 
@@ -256,10 +280,21 @@ async def list_inventory(limit: int = 100) -> str:
     async with client:
         items = await client.list_inventory(limit=limit)
 
-    return json.dumps({
-        "items": [{"id": i.id, "name": i.name, "status": i.status, "ad_server": i.ad_server_type.value} for i in items],
-        "count": len(items),
-    }, indent=2)
+    return json.dumps(
+        {
+            "items": [
+                {
+                    "id": i.id,
+                    "name": i.name,
+                    "status": i.status,
+                    "ad_server": i.ad_server_type.value,
+                }
+                for i in items
+            ],
+            "count": len(items),
+        },
+        indent=2,
+    )
 
 
 # =============================================================================
@@ -271,12 +306,16 @@ async def list_inventory(limit: int = 100) -> str:
 async def list_packages(featured_only: bool = False) -> str:
     """List packages in the media kit. These are what buyers browse."""
     from ..engines.media_kit_service import MediaKitService
+
     service = MediaKitService()
     packages = await service.list_packages_public(featured_only=featured_only)
-    return json.dumps({
-        "packages": [p.model_dump() if hasattr(p, "model_dump") else p for p in packages],
-        "count": len(packages),
-    }, indent=2)
+    return json.dumps(
+        {
+            "packages": [p.model_dump() if hasattr(p, "model_dump") else p for p in packages],
+            "count": len(packages),
+        },
+        indent=2,
+    )
 
 
 @mcp.tool()
@@ -290,7 +329,8 @@ async def create_package(
 ) -> str:
     """Create a new curated package in the media kit."""
     import uuid
-    from ..models.media_kit import Package, PackageLayer, PricingModel
+
+    from ..models.media_kit import Package, PackageLayer
 
     package = Package(
         package_id=f"pkg-{uuid.uuid4().hex[:8]}",
@@ -305,7 +345,9 @@ async def create_package(
     storage = await _get_storage()
     await storage.set_package(package.package_id, package.model_dump(mode="json"))
 
-    return json.dumps({"status": "created", "package_id": package.package_id, "name": name}, indent=2)
+    return json.dumps(
+        {"status": "created", "package_id": package.package_id, "name": name}, indent=2
+    )
 
 
 # =============================================================================
@@ -320,17 +362,20 @@ async def get_rate_card() -> str:
     rate_card = await storage.get("rate_card:current")
 
     if not rate_card:
-        return json.dumps({
-            "entries": [
-                {"inventory_type": "display", "base_cpm": 12.0},
-                {"inventory_type": "video", "base_cpm": 25.0},
-                {"inventory_type": "ctv", "base_cpm": 35.0},
-                {"inventory_type": "mobile_app", "base_cpm": 18.0},
-                {"inventory_type": "native", "base_cpm": 10.0},
-                {"inventory_type": "audio", "base_cpm": 15.0},
-            ],
-            "source": "defaults",
-        }, indent=2)
+        return json.dumps(
+            {
+                "entries": [
+                    {"inventory_type": "display", "base_cpm": 12.0},
+                    {"inventory_type": "video", "base_cpm": 25.0},
+                    {"inventory_type": "ctv", "base_cpm": 35.0},
+                    {"inventory_type": "mobile_app", "base_cpm": 18.0},
+                    {"inventory_type": "native", "base_cpm": 10.0},
+                    {"inventory_type": "audio", "base_cpm": 15.0},
+                ],
+                "source": "defaults",
+            },
+            indent=2,
+        )
 
     return json.dumps(rate_card, indent=2)
 
@@ -353,10 +398,10 @@ async def update_rate_card(entries: str) -> str:
 async def get_pricing(product_id: str, buyer_tier: str = "public", volume: int = 0) -> str:
     """Calculate tiered pricing for a product based on buyer identity."""
     from ..engines.pricing_rules_engine import PricingRulesEngine
-    from ..models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
-    from ..models.pricing_tiers import TieredPricingConfig
-    from ..models.core import DealType
     from ..flows import ProductSetupFlow
+    from ..models.buyer_identity import BuyerContext, BuyerIdentity
+    from ..models.core import DealType
+    from ..models.pricing_tiers import TieredPricingConfig
 
     setup = ProductSetupFlow()
     await setup.kickoff()
@@ -378,14 +423,17 @@ async def get_pricing(product_id: str, buyer_tier: str = "public", volume: int =
         inventory_type=product.inventory_type,
     )
 
-    return json.dumps({
-        "product_id": product_id,
-        "base_cpm": decision.base_price,
-        "final_cpm": decision.final_price,
-        "tier_discount": decision.tier_discount,
-        "volume_discount": decision.volume_discount,
-        "rationale": decision.rationale,
-    }, indent=2)
+    return json.dumps(
+        {
+            "product_id": product_id,
+            "base_cpm": decision.base_price,
+            "final_cpm": decision.final_price,
+            "tier_discount": decision.tier_discount,
+            "volume_discount": decision.volume_discount,
+            "rationale": decision.rationale,
+        },
+        indent=2,
+    )
 
 
 # =============================================================================
@@ -397,6 +445,7 @@ async def get_pricing(product_id: str, buyer_tier: str = "public", volume: int =
 async def request_quote(product_id: str, deal_type: str = "PD", impressions: int = 0) -> str:
     """Request a non-binding price quote for a product."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -421,6 +470,7 @@ async def create_deal_from_template(
     """Create a deal directly from parameters (one-step, no quote needed).
     Returns the deal or a rejection if max_cpm is below floor."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -443,6 +493,7 @@ async def create_deal_from_template(
 async def get_deal_performance(deal_id: str) -> str:
     """Get delivery and performance metrics for a deal."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -456,6 +507,7 @@ async def push_deal_to_buyers(deal_id: str, buyer_urls: str) -> str:
     """Push a deal to buyer endpoints via IAB Deals API v1.0.
     Pass buyer_urls as comma-separated list."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -478,6 +530,7 @@ async def distribute_deal_via_ssp(
     """Distribute a deal through configured SSP(s).
     Routes based on ssp_name or inventory_type routing rules."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -498,11 +551,14 @@ async def distribute_deal_via_ssp(
 async def troubleshoot_deal(deal_id: str, ssp_name: str) -> str:
     """Diagnose deal performance issues via SSP diagnostics."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
     async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.get(f"{url}/api/v1/deals/{deal_id}/ssp-troubleshoot", params={"ssp_name": ssp_name})
+        resp = await client.get(
+            f"{url}/api/v1/deals/{deal_id}/ssp-troubleshoot", params={"ssp_name": ssp_name}
+        )
         return resp.text
 
 
@@ -510,6 +566,7 @@ async def troubleshoot_deal(deal_id: str, ssp_name: str) -> str:
 async def migrate_deal(old_deal_id: str, reason: str = "", max_cpm: float = 0) -> str:
     """Replace an existing deal with a new one. Creates lineage tracking."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -528,6 +585,7 @@ async def migrate_deal(old_deal_id: str, reason: str = "", max_cpm: float = 0) -
 async def deprecate_deal(deal_id: str, reason: str, replacement_deal_id: str = "") -> str:
     """Mark a deal as deprecated with reason and optional replacement."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -544,6 +602,7 @@ async def deprecate_deal(deal_id: str, reason: str, replacement_deal_id: str = "
 async def get_deal_lineage(deal_id: str) -> str:
     """Get the lineage chain for a deal — parents and replacements."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -556,6 +615,7 @@ async def get_deal_lineage(deal_id: str) -> str:
 async def export_deals(format: str = "generic", status: str = "") -> str:
     """Export deals in DSP-native format (generic, ttd, dv360, amazon, xandr)."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -573,6 +633,7 @@ async def bulk_deal_operations(operations: str) -> str:
     """Process multiple deal operations in one batch.
     Pass operations as JSON array: [{"action":"create","quote_id":"..."}, ...]"""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -591,6 +652,7 @@ async def bulk_deal_operations(operations: str) -> str:
 async def list_orders(limit: int = 50) -> str:
     """List orders and their current states."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -603,6 +665,7 @@ async def list_orders(limit: int = 50) -> str:
 async def transition_order(order_id: str, new_status: str, reason: str = "") -> str:
     """Transition an order to a new state (e.g., draft→approved→delivering)."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -624,6 +687,7 @@ async def transition_order(order_id: str, new_status: str, reason: str = "") -> 
 async def list_pending_approvals() -> str:
     """List pending approval requests waiting for human decision."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -636,6 +700,7 @@ async def list_pending_approvals() -> str:
 async def approve_or_reject(approval_id: str, decision: str, reason: str = "") -> str:
     """Submit an approval decision. decision: 'approve', 'reject', or 'counter'."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -649,7 +714,9 @@ async def approve_or_reject(approval_id: str, decision: str, reason: str = "") -
 
 
 @mcp.tool()
-async def set_approval_gates(enabled: bool, required_flows: str = "", timeout_hours: int = 24) -> str:
+async def set_approval_gates(
+    enabled: bool, required_flows: str = "", timeout_hours: int = 24
+) -> str:
     """Configure approval gates. required_flows is comma-separated:
     'proposal_decision,deal_registration'"""
     _update_env("APPROVAL_GATE_ENABLED", str(enabled).lower())
@@ -657,13 +724,15 @@ async def set_approval_gates(enabled: bool, required_flows: str = "", timeout_ho
         _update_env("APPROVAL_REQUIRED_FLOWS", required_flows)
     _update_env("APPROVAL_TIMEOUT_HOURS", str(timeout_hours))
 
-    return json.dumps({
-        "status": "updated",
-        "enabled": enabled,
-        "required_flows": required_flows or "(unchanged)",
-        "timeout_hours": timeout_hours,
-        "note": "Restart the server for changes to take effect.",
-    })
+    return json.dumps(
+        {
+            "status": "updated",
+            "enabled": enabled,
+            "required_flows": required_flows or "(unchanged)",
+            "timeout_hours": timeout_hours,
+            "note": "Restart the server for changes to take effect.",
+        }
+    )
 
 
 # =============================================================================
@@ -675,6 +744,7 @@ async def set_approval_gates(enabled: bool, required_flows: str = "", timeout_ho
 async def get_supply_chain() -> str:
     """Get the seller's supply chain transparency info (sellers.json format)."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -687,6 +757,7 @@ async def get_supply_chain() -> str:
 async def list_curators() -> str:
     """List registered curators (Agent Range is pre-registered)."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -705,6 +776,7 @@ async def create_curated_deal(
 ) -> str:
     """Create a deal with curator overlay. The curator's fee is added on top."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -730,6 +802,7 @@ async def create_curated_deal(
 async def list_buyer_agents() -> str:
     """List registered buyer agents and their trust levels."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -743,6 +816,7 @@ async def register_buyer_agent(agent_url: str) -> str:
     """Discover and register a buyer agent by URL.
     Fetches their agent card and adds them to the registry."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -756,11 +830,14 @@ async def set_agent_trust(agent_id: str, trust_level: str) -> str:
     """Set trust level for a buyer agent.
     Levels: unknown, registered, approved, preferred, blocked."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
     async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.put(f"{url}/registry/agents/{agent_id}/trust", json={"trust_status": trust_level})
+        resp = await client.put(
+            f"{url}/registry/agents/{agent_id}/trust", json={"trust_status": trust_level}
+        )
         return resp.text
 
 
@@ -773,6 +850,7 @@ async def set_agent_trust(agent_id: str, trust_level: str) -> str:
 async def create_api_key(name: str = "buyer", seat_id: str = "", agency_id: str = "") -> str:
     """Create an API key for a buyer or agent."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -791,6 +869,7 @@ async def create_api_key(name: str = "buyer", seat_id: str = "", agency_id: str 
 async def list_api_keys() -> str:
     """List active API keys."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -803,6 +882,7 @@ async def list_api_keys() -> str:
 async def revoke_api_key(key_id: str) -> str:
     """Revoke an API key."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -820,6 +900,7 @@ async def revoke_api_key(key_id: str) -> str:
 async def list_sessions() -> str:
     """List active buyer conversation sessions."""
     import httpx
+
     settings = _get_settings()
     url = getattr(settings, "seller_agent_url", "http://localhost:8000")
 
@@ -837,13 +918,25 @@ async def list_sessions() -> str:
 async def list_ssps() -> str:
     """List configured SSP connectors and routing rules."""
     settings = _get_settings()
-    return json.dumps({
-        "connectors": settings.ssp_connectors or "none",
-        "routing_rules": settings.ssp_routing_rules or "none",
-        "pubmatic": {"configured": bool(settings.pubmatic_mcp_url), "url": settings.pubmatic_mcp_url or "not set"},
-        "index_exchange": {"configured": bool(settings.index_exchange_api_url), "url": settings.index_exchange_api_url or "not set"},
-        "magnite": {"configured": bool(settings.magnite_api_url), "url": settings.magnite_api_url or "not set"},
-    }, indent=2)
+    return json.dumps(
+        {
+            "connectors": settings.ssp_connectors or "none",
+            "routing_rules": settings.ssp_routing_rules or "none",
+            "pubmatic": {
+                "configured": bool(settings.pubmatic_mcp_url),
+                "url": settings.pubmatic_mcp_url or "not set",
+            },
+            "index_exchange": {
+                "configured": bool(settings.index_exchange_api_url),
+                "url": settings.index_exchange_api_url or "not set",
+            },
+            "magnite": {
+                "configured": bool(settings.magnite_api_url),
+                "url": settings.magnite_api_url or "not set",
+            },
+        },
+        indent=2,
+    )
 
 
 # =============================================================================
@@ -854,37 +947,67 @@ async def list_ssps() -> str:
 @mcp.tool()
 async def list_agents() -> str:
     """Show the 3-level agent hierarchy and their roles."""
-    return json.dumps({
-        "hierarchy": {
-            "level_1": {
-                "name": "Inventory Manager",
-                "model": "claude-opus",
-                "role": "Strategic orchestrator — maximizes publisher yield",
-                "optimizes_for": ["revenue", "fill_rate", "pricing_power", "relationships"],
-            },
-            "level_2": {
-                "agents": [
-                    {"name": "Display Specialist", "focus": "IAB display, rich media, programmatic display"},
-                    {"name": "Video Specialist", "focus": "In-stream, out-stream, VAST/VPAID"},
-                    {"name": "CTV Specialist", "focus": "Streaming, FAST channels, SSAI, household targeting"},
-                    {"name": "Mobile App Specialist", "focus": "iOS/Android, rewarded video, interstitials"},
-                    {"name": "Native Specialist", "focus": "In-feed, content rec, sponsored content"},
-                    {"name": "Linear TV Specialist", "focus": "Broadcast, MVPD, addressable, programmatic linear"},
-                ],
-                "model": "claude-sonnet",
-            },
-            "level_3": {
-                "agents": [
-                    {"name": "Pricing Agent", "focus": "Rate cards, dynamic pricing, floor prices, tier discounts"},
-                    {"name": "Availability Agent", "focus": "Forecasting, avails, pacing, delivery monitoring"},
-                    {"name": "Proposal Review Agent", "focus": "Evaluate proposals, validate, recommend accept/counter/reject"},
-                    {"name": "Audience Validator", "focus": "Validate targeting, coverage, UCP compatibility"},
-                    {"name": "Upsell Agent", "focus": "Cross-sell, upsell, alternatives"},
-                ],
-                "model": "claude-sonnet",
+    return json.dumps(
+        {
+            "hierarchy": {
+                "level_1": {
+                    "name": "Inventory Manager",
+                    "model": "claude-opus",
+                    "role": "Strategic orchestrator — maximizes publisher yield",
+                    "optimizes_for": ["revenue", "fill_rate", "pricing_power", "relationships"],
+                },
+                "level_2": {
+                    "agents": [
+                        {
+                            "name": "Display Specialist",
+                            "focus": "IAB display, rich media, programmatic display",
+                        },
+                        {"name": "Video Specialist", "focus": "In-stream, out-stream, VAST/VPAID"},
+                        {
+                            "name": "CTV Specialist",
+                            "focus": "Streaming, FAST channels, SSAI, household targeting",
+                        },
+                        {
+                            "name": "Mobile App Specialist",
+                            "focus": "iOS/Android, rewarded video, interstitials",
+                        },
+                        {
+                            "name": "Native Specialist",
+                            "focus": "In-feed, content rec, sponsored content",
+                        },
+                        {
+                            "name": "Linear TV Specialist",
+                            "focus": "Broadcast, MVPD, addressable, programmatic linear",
+                        },
+                    ],
+                    "model": "claude-sonnet",
+                },
+                "level_3": {
+                    "agents": [
+                        {
+                            "name": "Pricing Agent",
+                            "focus": "Rate cards, dynamic pricing, floor prices, tier discounts",
+                        },
+                        {
+                            "name": "Availability Agent",
+                            "focus": "Forecasting, avails, pacing, delivery monitoring",
+                        },
+                        {
+                            "name": "Proposal Review Agent",
+                            "focus": "Evaluate proposals, validate, recommend accept/counter/reject",
+                        },
+                        {
+                            "name": "Audience Validator",
+                            "focus": "Validate targeting, coverage, UCP compatibility",
+                        },
+                        {"name": "Upsell Agent", "focus": "Cross-sell, upsell, alternatives"},
+                    ],
+                    "model": "claude-sonnet",
+                },
             },
         },
-    }, indent=2)
+        indent=2,
+    )
 
 
 # =============================================================================

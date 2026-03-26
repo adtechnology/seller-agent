@@ -7,7 +7,7 @@ Manages inventory forecasting, availability checking, and pacing
 across all inventory types.
 """
 
-from crewai import Agent, LLM
+from crewai import LLM, Agent
 
 from ...config import get_settings
 

@@ -3,31 +3,30 @@
 
 """Unit tests for Agent Registry models, client, and service."""
 
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
+import pytest
+
+from ad_seller.clients.agent_registry_client import (
+    AAMPRegistryClient,
+    fetch_agent_card,
+)
 from ad_seller.models.agent_registry import (
-    AgentCard,
-    AgentCapabilities,
+    TRUST_TO_TIER_MAP,
     AgentAuthentication,
+    AgentCapabilities,
+    AgentCard,
     AgentProvider,
     AgentSkill,
     AgentType,
     RegisteredAgent,
     RegistrySource,
     TrustStatus,
-    TRUST_TO_TIER_MAP,
 )
 from ad_seller.models.buyer_identity import AccessTier, BuyerContext, BuyerIdentity
-import httpx
-
-from ad_seller.clients.agent_registry_client import (
-    AAMPRegistryClient,
-    fetch_agent_card,
-)
 from ad_seller.registry.agent_registry import AgentRegistryService
-
 
 # =============================================================================
 # Fixtures
@@ -469,9 +468,7 @@ class TestAAMPRegistryClient:
     @pytest.mark.asyncio
     async def test_verify_unknown_agent(self, aamp_client):
         """Unknown URL returns not registered."""
-        is_reg, ext_id = await aamp_client.verify_registration(
-            "https://unknown-agent.example.com"
-        )
+        is_reg, ext_id = await aamp_client.verify_registration("https://unknown-agent.example.com")
         assert is_reg is False
         assert ext_id is None
 
@@ -559,9 +556,7 @@ class TestFetchAgentCard:
 
 class TestAgentRegistryService:
     @pytest.mark.asyncio
-    async def test_register_new_agent(
-        self, registry_service, mock_storage, sample_agent_card
-    ):
+    async def test_register_new_agent(self, registry_service, mock_storage, sample_agent_card):
         """Register a new agent in local registry."""
         agent = await registry_service.register_agent(
             agent_card=sample_agent_card,
@@ -581,15 +576,11 @@ class TestAgentRegistryService:
         # Simulate existing agent found by URL
         agent_data = sample_registered_agent.model_dump(mode="json")
         mock_storage.get.side_effect = lambda key: (
-            sample_registered_agent.agent_id
-            if key.startswith("agent_url_index:")
-            else None
+            sample_registered_agent.agent_id if key.startswith("agent_url_index:") else None
         )
         mock_storage.get_agent.return_value = agent_data
 
-        updated_card = sample_agent_card.model_copy(
-            update={"description": "Updated description"}
-        )
+        updated_card = sample_agent_card.model_copy(update={"description": "Updated description"})
         agent = await registry_service.register_agent(
             agent_card=updated_card,
             trust_status=TrustStatus.APPROVED,
@@ -600,9 +591,7 @@ class TestAgentRegistryService:
     @pytest.mark.asyncio
     async def test_get_agent(self, registry_service, mock_storage, sample_registered_agent):
         """Retrieve agent by ID."""
-        mock_storage.get_agent.return_value = sample_registered_agent.model_dump(
-            mode="json"
-        )
+        mock_storage.get_agent.return_value = sample_registered_agent.model_dump(mode="json")
         agent = await registry_service.get_agent("agent-test1234")
         assert agent is not None
         assert agent.agent_id == "agent-test1234"
@@ -619,9 +608,7 @@ class TestAgentRegistryService:
         self, registry_service, mock_storage, sample_registered_agent
     ):
         """List agents filtered by type."""
-        mock_storage.list_agents.return_value = [
-            sample_registered_agent.model_dump(mode="json")
-        ]
+        mock_storage.list_agents.return_value = [sample_registered_agent.model_dump(mode="json")]
         agents = await registry_service.list_agents(agent_type=AgentType.BUYER)
         assert len(agents) == 1
         assert agents[0].agent_type == AgentType.BUYER
@@ -631,9 +618,7 @@ class TestAgentRegistryService:
         self, registry_service, mock_storage, sample_registered_agent
     ):
         """List agents filtered by trust status."""
-        mock_storage.list_agents.return_value = [
-            sample_registered_agent.model_dump(mode="json")
-        ]
+        mock_storage.list_agents.return_value = [sample_registered_agent.model_dump(mode="json")]
         # Filter for APPROVED — should return empty since agent is REGISTERED
         agents = await registry_service.list_agents(trust_status=TrustStatus.APPROVED)
         assert len(agents) == 0
@@ -647,9 +632,7 @@ class TestAgentRegistryService:
         self, registry_service, mock_storage, sample_registered_agent
     ):
         """Update an agent's trust status."""
-        mock_storage.get_agent.return_value = sample_registered_agent.model_dump(
-            mode="json"
-        )
+        mock_storage.get_agent.return_value = sample_registered_agent.model_dump(mode="json")
         agent = await registry_service.update_trust_status(
             "agent-test1234", TrustStatus.APPROVED, notes="Manually verified"
         )
@@ -661,19 +644,13 @@ class TestAgentRegistryService:
     async def test_update_trust_not_found(self, registry_service, mock_storage):
         """Update trust for non-existent agent returns None."""
         mock_storage.get_agent.return_value = None
-        result = await registry_service.update_trust_status(
-            "nonexistent", TrustStatus.BLOCKED
-        )
+        result = await registry_service.update_trust_status("nonexistent", TrustStatus.BLOCKED)
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_remove_agent(
-        self, registry_service, mock_storage, sample_registered_agent
-    ):
+    async def test_remove_agent(self, registry_service, mock_storage, sample_registered_agent):
         """Remove agent from registry."""
-        mock_storage.get_agent.return_value = sample_registered_agent.model_dump(
-            mode="json"
-        )
+        mock_storage.get_agent.return_value = sample_registered_agent.model_dump(mode="json")
         result = await registry_service.remove_agent("agent-test1234")
         assert result is True
         mock_storage.delete.assert_called()
@@ -691,9 +668,7 @@ class TestAgentRegistryService:
         self, registry_service, mock_storage, sample_registered_agent
     ):
         """Record interaction bumps count and last_seen."""
-        mock_storage.get_agent.return_value = sample_registered_agent.model_dump(
-            mode="json"
-        )
+        mock_storage.get_agent.return_value = sample_registered_agent.model_dump(mode="json")
         await registry_service.record_interaction("agent-test1234")
         mock_storage.set_agent.assert_called()
 
@@ -708,22 +683,16 @@ class TestResolveAgentAccess:
         """Known local agent returns cached result."""
         agent_data = sample_registered_agent.model_dump(mode="json")
         mock_storage.get.side_effect = lambda key: (
-            sample_registered_agent.agent_id
-            if key.startswith("agent_url_index:")
-            else None
+            sample_registered_agent.agent_id if key.startswith("agent_url_index:") else None
         )
         mock_storage.get_agent.return_value = agent_data
 
-        agent, tier = await registry_service.resolve_agent_access(
-            "https://buyer.example.com"
-        )
+        agent, tier = await registry_service.resolve_agent_access("https://buyer.example.com")
         assert agent is not None
         assert tier == AccessTier.SEAT  # REGISTERED → SEAT
 
     @pytest.mark.asyncio
-    async def test_resolve_blocked_agent(
-        self, registry_service, mock_storage, sample_agent_card
-    ):
+    async def test_resolve_blocked_agent(self, registry_service, mock_storage, sample_agent_card):
         """Blocked agent returns None tier."""
         blocked = RegisteredAgent(
             agent_id="blocked-1",
@@ -735,9 +704,7 @@ class TestResolveAgentAccess:
         )
         mock_storage.get_agent.return_value = blocked.model_dump(mode="json")
 
-        agent, tier = await registry_service.resolve_agent_access(
-            "https://buyer.example.com"
-        )
+        agent, tier = await registry_service.resolve_agent_access("https://buyer.example.com")
         assert agent is not None
         assert tier is None  # Blocked → None
 
@@ -752,9 +719,7 @@ class TestResolveAgentAccess:
             "ad_seller.registry.agent_registry.fetch_agent_card",
             return_value=None,
         ):
-            agent, tier = await registry_service.resolve_agent_access(
-                "https://mystery.example.com"
-            )
+            agent, tier = await registry_service.resolve_agent_access("https://mystery.example.com")
             assert agent is None
             assert tier == AccessTier.PUBLIC
 
@@ -775,9 +740,7 @@ class TestResolveAgentAccess:
                 return_value=(True, "aamp-ext123")
             )
 
-            agent, tier = await registry_service.resolve_agent_access(
-                "https://buyer.example.com"
-            )
+            agent, tier = await registry_service.resolve_agent_access("https://buyer.example.com")
             assert agent is not None
             assert agent.trust_status == TrustStatus.REGISTERED
             assert tier == AccessTier.SEAT

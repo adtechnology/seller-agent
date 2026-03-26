@@ -3,8 +3,9 @@
 
 """Tests for FreeWheel ad server adapter."""
 
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from ad_seller.clients.ad_server_base import AdServerType
 from ad_seller.clients.freewheel_adapter import FreeWheelAdServerClient
@@ -61,10 +62,12 @@ class TestLineItemMethods:
 class TestListInventory:
     @pytest.mark.asyncio
     async def test_list_inventory_calls_mcp(self, adapter):
-        adapter._sh_client.call_tool = AsyncMock(return_value=[
-            {"id": "pkg-1", "name": "Premium CTV", "status": "ACTIVE"},
-            {"id": "pkg-2", "name": "Display ROS", "status": "ACTIVE"},
-        ])
+        adapter._sh_client.call_tool = AsyncMock(
+            return_value=[
+                {"id": "pkg-1", "name": "Premium CTV", "status": "ACTIVE"},
+                {"id": "pkg-2", "name": "Display ROS", "status": "ACTIVE"},
+            ]
+        )
 
         items = await adapter.list_inventory()
 
@@ -75,9 +78,11 @@ class TestListInventory:
 
     @pytest.mark.asyncio
     async def test_list_inventory_dict_response(self, adapter):
-        adapter._sh_client.call_tool = AsyncMock(return_value={
-            "items": [{"id": "pkg-1", "name": "Test"}],
-        })
+        adapter._sh_client.call_tool = AsyncMock(
+            return_value={
+                "items": [{"id": "pkg-1", "name": "Test"}],
+            }
+        )
 
         items = await adapter.list_inventory()
         assert len(items) == 1
@@ -93,9 +98,11 @@ class TestListInventory:
 class TestListAudienceSegments:
     @pytest.mark.asyncio
     async def test_list_segments_calls_mcp(self, adapter):
-        adapter._sh_client.call_tool = AsyncMock(return_value=[
-            {"id": "seg-1", "name": "Sports Fans"},
-        ])
+        adapter._sh_client.call_tool = AsyncMock(
+            return_value=[
+                {"id": "seg-1", "name": "Sports Fans"},
+            ]
+        )
 
         segments = await adapter.list_audience_segments()
         assert len(segments) == 1
@@ -105,13 +112,15 @@ class TestListAudienceSegments:
 class TestBookDeal:
     @pytest.mark.asyncio
     async def test_book_deal_calls_mcp(self, adapter):
-        adapter._sh_client.call_tool = AsyncMock(return_value={
-            "id": "fw-deal-001",
-            "deal_id": "IAB-ABC123",
-            "deal_type": "PD",
-            "fixed_price": 25.0,
-            "status": "ACTIVE",
-        })
+        adapter._sh_client.call_tool = AsyncMock(
+            return_value={
+                "id": "fw-deal-001",
+                "deal_id": "IAB-ABC123",
+                "deal_type": "PD",
+                "fixed_price": 25.0,
+                "status": "ACTIVE",
+            }
+        )
 
         result = await adapter.book_deal(
             deal_id="IAB-ABC123",
@@ -135,13 +144,15 @@ class TestBookDeal:
 class TestCreateDeal:
     @pytest.mark.asyncio
     async def test_create_deal_calls_book_deal_mcp(self, adapter):
-        adapter._sh_client.call_tool = AsyncMock(return_value={
-            "id": "fw-deal-002",
-            "deal_id": "IAB-DEF456",
-            "deal_type": "PA",
-            "floor_price": 15.0,
-            "status": "ACTIVE",
-        })
+        adapter._sh_client.call_tool = AsyncMock(
+            return_value={
+                "id": "fw-deal-002",
+                "deal_id": "IAB-DEF456",
+                "deal_type": "PA",
+                "floor_price": 15.0,
+                "status": "ACTIVE",
+            }
+        )
 
         deal = await adapter.create_deal(
             deal_id="IAB-DEF456",
@@ -156,11 +167,13 @@ class TestCreateDeal:
 class TestUpdateDeal:
     @pytest.mark.asyncio
     async def test_update_deal_calls_mcp(self, adapter):
-        adapter._sh_client.call_tool = AsyncMock(return_value={
-            "id": "fw-deal-001",
-            "deal_id": "IAB-ABC123",
-            "status": "PAUSED",
-        })
+        adapter._sh_client.call_tool = AsyncMock(
+            return_value={
+                "id": "fw-deal-001",
+                "deal_id": "IAB-ABC123",
+                "status": "PAUSED",
+            }
+        )
 
         deal = await adapter.update_deal("IAB-ABC123", {"status": "PAUSED"})
         adapter._sh_client.call_tool.assert_called_once()

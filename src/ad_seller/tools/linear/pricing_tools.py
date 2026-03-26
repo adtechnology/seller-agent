@@ -12,12 +12,10 @@ All output dual currency (CPP + CPM). Uses static rate card data now;
 seam for FreeWheel Publisher API when 1A integration lands.
 """
 
-from decimal import Decimal
 from typing import Type
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
-
 
 # =============================================================================
 # Daypart pricing multipliers (industry reference data)
@@ -36,7 +34,7 @@ DAYPART_MULTIPLIERS: dict[str, float] = {
 }
 
 BUYER_TIER_DISCOUNTS: dict[str, float] = {
-    "holding_company": 0.90,   # 10% volume discount
+    "holding_company": 0.90,  # 10% volume discount
     "independent_agency": 0.95,
     "brand_direct": 1.0,
     "dsp": 0.92,
@@ -228,8 +226,12 @@ class UpfrontDealCalculator(BaseTool):
 
         # Rate-of-change by holding company tier
         roc_table = {
-            "wpp": 5.0, "omnicom": 5.5, "publicis": 6.0,
-            "ipg": 5.0, "dentsu": 6.5, "havas": 7.0,
+            "wpp": 5.0,
+            "omnicom": 5.5,
+            "publicis": 6.0,
+            "ipg": 5.0,
+            "dentsu": 6.5,
+            "havas": 7.0,
             "independent": 8.0,
         }
         base_roc = roc_table.get(holding_company, 8.0)
@@ -267,7 +269,7 @@ Volume: ${volume_commitment:,.0f} ({tier_name})
 Rate-of-Change:
   Base ROC: +{base_roc:.1f}%
   Volume Discount: -{volume_disc * 100:.1f}%
-  Tier Adjustment: {'+' if adj >= 0 else ''}{adj:.1f}%
+  Tier Adjustment: {"+" if adj >= 0 else ""}{adj:.1f}%
   Effective ROC: +{effective_roc:.1f}%
 
 Prior Season Rate: ${prior_season_rate:.2f}

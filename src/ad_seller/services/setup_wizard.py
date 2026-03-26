@@ -196,21 +196,36 @@ class SetupWizard:
         if settings.approval_gate_enabled or settings.approval_required_flows:
             self._biz_steps["b5_approvals"].status = WizardStepStatus.COMPLETED
 
-        dev_complete = sum(1 for s in self._dev_steps.values() if s.status in (WizardStepStatus.COMPLETED, WizardStepStatus.SKIPPED))
-        biz_complete = sum(1 for s in self._biz_steps.values() if s.status in (WizardStepStatus.COMPLETED, WizardStepStatus.SKIPPED))
+        dev_complete = sum(
+            1
+            for s in self._dev_steps.values()
+            if s.status in (WizardStepStatus.COMPLETED, WizardStepStatus.SKIPPED)
+        )
+        biz_complete = sum(
+            1
+            for s in self._biz_steps.values()
+            if s.status in (WizardStepStatus.COMPLETED, WizardStepStatus.SKIPPED)
+        )
 
         return {
             "developer_phase": {
                 "completed": dev_complete,
                 "total": len(self._dev_steps),
-                "steps": [{"id": s.step_id, "title": s.title, "status": s.status.value} for s in self._dev_steps.values()],
+                "steps": [
+                    {"id": s.step_id, "title": s.title, "status": s.status.value}
+                    for s in self._dev_steps.values()
+                ],
             },
             "business_phase": {
                 "completed": biz_complete,
                 "total": len(self._biz_steps),
-                "steps": [{"id": s.step_id, "title": s.title, "status": s.status.value} for s in self._biz_steps.values()],
+                "steps": [
+                    {"id": s.step_id, "title": s.title, "status": s.status.value}
+                    for s in self._biz_steps.values()
+                ],
             },
-            "overall_complete": dev_complete + biz_complete == len(self._dev_steps) + len(self._biz_steps),
+            "overall_complete": dev_complete + biz_complete
+            == len(self._dev_steps) + len(self._biz_steps),
         }
 
     def get_next_step(self, phase: WizardPhase) -> Optional[WizardStep]:
@@ -240,6 +255,7 @@ class SetupWizard:
 
     def _get_settings(self) -> Any:
         from ..config import get_settings
+
         return get_settings()
 
 

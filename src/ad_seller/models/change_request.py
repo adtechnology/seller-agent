@@ -43,7 +43,7 @@ class ChangeType(str, Enum):
 class ChangeSeverity(str, Enum):
     """How significant the change is — determines approval requirements."""
 
-    MINOR = "minor"       # Auto-approvable (e.g. small date shift)
+    MINOR = "minor"  # Auto-approvable (e.g. small date shift)
     MATERIAL = "material"  # Requires human approval (e.g. price change)
     CRITICAL = "critical"  # Requires senior approval (e.g. cancellation)
 
@@ -110,7 +110,11 @@ def classify_severity(change_type: ChangeType, diffs: list[FieldDiff]) -> Change
         for diff in diffs:
             if diff.field in ("final_cpm", "base_cpm") and diff.old_value and diff.new_value:
                 try:
-                    pct = abs(float(diff.new_value) - float(diff.old_value)) / float(diff.old_value) * 100
+                    pct = (
+                        abs(float(diff.new_value) - float(diff.old_value))
+                        / float(diff.old_value)
+                        * 100
+                    )
                     if pct > 20:
                         return ChangeSeverity.CRITICAL
                 except (ValueError, ZeroDivisionError):
@@ -149,7 +153,14 @@ def validate_change_request(
 
     # Cancellation only from active states
     if change_request.change_type == ChangeType.CANCELLATION:
-        if status not in {"draft", "submitted", "pending_approval", "approved", "in_progress", "booked"}:
+        if status not in {
+            "draft",
+            "submitted",
+            "pending_approval",
+            "approved",
+            "in_progress",
+            "booked",
+        }:
             errors.append(f"Cannot cancel order in '{status}' status.")
 
     # Impression changes must be positive

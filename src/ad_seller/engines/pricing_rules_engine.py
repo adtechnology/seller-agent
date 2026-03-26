@@ -12,16 +12,14 @@ Evaluates pricing based on:
 
 from typing import Any, Optional
 
-from ..models.buyer_identity import BuyerContext, AccessTier
-from ..models.pricing_tiers import (
-    PricingRule,
-    PricingTier,
-    TieredPricingConfig,
-    VolumeDiscount,
-    DiscountType,
-)
-from ..models.flow_state import PricingDecision
+from ..models.buyer_identity import AccessTier, BuyerContext
 from ..models.core import DealType, PricingModel
+from ..models.flow_state import PricingDecision
+from ..models.pricing_tiers import (
+    DiscountType,
+    PricingRule,
+    TieredPricingConfig,
+)
 
 
 class PricingRulesEngine:
@@ -94,14 +92,16 @@ class PricingRulesEngine:
         tier_discount = tier_config.tier_discount
         if tier_discount > 0:
             price = price * (1 - tier_discount)
-            applied_rules.append(f"Tier discount: -{tier_discount*100:.0f}%")
+            applied_rules.append(f"Tier discount: -{tier_discount * 100:.0f}%")
 
         # Find and apply matching pricing rules
         matching_rules = self._config.find_matching_rules(
             tier=tier,
             agency_id=buyer_context.identity.agency_id if buyer_context else None,
             advertiser_id=buyer_context.identity.advertiser_id if buyer_context else None,
-            holding_company=buyer_context.identity.agency_holding_company if buyer_context else None,
+            holding_company=buyer_context.identity.agency_holding_company
+            if buyer_context
+            else None,
             product_id=product_id,
             inventory_type=inventory_type,
         )
@@ -110,7 +110,9 @@ class PricingRulesEngine:
         for rule in matching_rules:
             if rule.base_price_override is not None:
                 price = rule.base_price_override
-                applied_rules.append(f"Rule '{rule.rule_name}': Price override ${rule.base_price_override}")
+                applied_rules.append(
+                    f"Rule '{rule.rule_name}': Price override ${rule.base_price_override}"
+                )
                 break  # Price override takes precedence
 
             if rule.discount_percentage > 0:
@@ -118,7 +120,7 @@ class PricingRulesEngine:
 
         if rule_discount > 0:
             price = price * (1 - rule_discount)
-            applied_rules.append(f"Rule discount: -{rule_discount*100:.0f}%")
+            applied_rules.append(f"Rule discount: -{rule_discount * 100:.0f}%")
 
         # Apply volume discounts if enabled and volume specified
         volume_discount = 0.0
@@ -126,7 +128,7 @@ class PricingRulesEngine:
             volume_discount = self._calculate_volume_discount(volume, matching_rules)
             if volume_discount > 0:
                 price = price * (1 - volume_discount)
-                applied_rules.append(f"Volume discount: -{volume_discount*100:.1f}%")
+                applied_rules.append(f"Volume discount: -{volume_discount * 100:.1f}%")
 
         # Enforce floor price
         if price < self._config.global_floor_cpm:
@@ -228,19 +230,19 @@ class PricingRulesEngine:
         parts = [f"Base price: ${base_price:.2f} CPM"]
 
         if tier_discount > 0:
-            parts.append(f"{tier.value.title()} tier: -{tier_discount*100:.0f}%")
+            parts.append(f"{tier.value.title()} tier: -{tier_discount * 100:.0f}%")
 
         if rule_discount > 0:
-            parts.append(f"Custom rule: -{rule_discount*100:.0f}%")
+            parts.append(f"Custom rule: -{rule_discount * 100:.0f}%")
 
         if volume_discount > 0:
-            parts.append(f"Volume discount: -{volume_discount*100:.1f}%")
+            parts.append(f"Volume discount: -{volume_discount * 100:.1f}%")
 
         total_discount = 1 - (final_price / base_price) if base_price > 0 else 0
         parts.append(f"Final price: ${final_price:.2f} CPM")
 
         if total_discount > 0:
-            parts.append(f"(Total savings: {total_discount*100:.1f}%)")
+            parts.append(f"(Total savings: {total_discount * 100:.1f}%)")
 
         return " | ".join(parts)
 

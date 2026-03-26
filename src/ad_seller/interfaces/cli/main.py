@@ -19,10 +19,10 @@ from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv(usecwd=True))
 
-import typer
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
+import typer  # noqa: E402
+from rich.console import Console  # noqa: E402
+from rich.panel import Panel  # noqa: E402
+from rich.table import Table  # noqa: E402
 
 app = typer.Typer(
     name="ad-seller",
@@ -102,14 +102,16 @@ def catalog():
 @app.command()
 def price(
     product_id: str = typer.Argument(..., help="Product ID to get pricing for"),
-    tier: str = typer.Option("public", "--tier", "-t", help="Buyer tier: public, agency, advertiser"),
+    tier: str = typer.Option(
+        "public", "--tier", "-t", help="Buyer tier: public, agency, advertiser"
+    ),
     volume: int = typer.Option(0, "--volume", "-v", help="Impression volume for discounts"),
 ):
     """Get pricing for a product based on buyer tier."""
     from ...engines.pricing_rules_engine import PricingRulesEngine
-    from ...models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
-    from ...models.pricing_tiers import TieredPricingConfig
     from ...flows import ProductSetupFlow
+    from ...models.buyer_identity import AccessTier, BuyerContext, BuyerIdentity
+    from ...models.pricing_tiers import TieredPricingConfig
 
     # Get products
     flow = ProductSetupFlow()
@@ -205,7 +207,7 @@ def connect(
     ),
 ):
     """Test connection to OpenDirect server."""
-    from ...clients import UnifiedClient, Protocol
+    from ...clients import Protocol, UnifiedClient
 
     console.print(f"Connecting to [cyan]{url}[/cyan]...")
 
@@ -228,15 +230,17 @@ def connect(
 @app.command()
 def chat():
     """Start interactive chat mode for buyer interactions."""
-    from ...flows import DealRequestFlow, DiscoveryInquiryFlow
+    from ...flows import DealRequestFlow
     from ...models.buyer_identity import BuyerContext, BuyerIdentity
 
-    console.print(Panel(
-        "Ad Seller Chat Interface\n"
-        "Ask about inventory, pricing, or request deals.\n"
-        "Type 'quit' to exit.",
-        title="Welcome",
-    ))
+    console.print(
+        Panel(
+            "Ad Seller Chat Interface\n"
+            "Ask about inventory, pricing, or request deals.\n"
+            "Type 'quit' to exit.",
+            title="Welcome",
+        )
+    )
 
     # Create anonymous buyer context (can be upgraded)
     identity = BuyerIdentity()
@@ -265,9 +269,13 @@ def chat():
                 console.print(f"\n[bold green]Seller:[/bold green] {result['response']}")
             else:
                 # Discovery query
-                console.print(f"\n[bold green]Seller:[/bold green] Let me help you with that inquiry...")
+                console.print(
+                    "\n[bold green]Seller:[/bold green] Let me help you with that inquiry..."
+                )
                 console.print("Available inventory types: Display, Video, CTV, Mobile App, Native")
-                console.print("Ask about pricing, availability, or say 'create deal' to start a transaction.")
+                console.print(
+                    "Ask about pricing, availability, or say 'create deal' to start a transaction."
+                )
 
         except KeyboardInterrupt:
             console.print("\n[yellow]Goodbye![/yellow]")

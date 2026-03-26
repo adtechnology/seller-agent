@@ -15,14 +15,13 @@ Standards alignment:
 import re
 import uuid
 from decimal import Decimal
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 
+from ..constants.dma_codes import DMA_CODES
 from .core import DealType, PricingModel
 from .flow_state import ProductDefinition
-from ..constants.dma_codes import DMA_CODES
-
 
 # =============================================================================
 # Type Aliases
@@ -46,18 +45,35 @@ SellerType = Literal["DIRECT", "RESELLER", "BOTH"]
 MarketType = Literal["upfront", "scatter", "sponsorship", "package"]
 ProgrammaticDealType = Literal["pg", "pmp", "preferred"]
 MeasurementCurrency = Literal[
-    "nielsen_c3", "nielsen_c7", "nielsen_one",
-    "videoamp", "ispot", "comscore",
-    "impression", "grp", "multi",
+    "nielsen_c3",
+    "nielsen_c7",
+    "nielsen_one",
+    "videoamp",
+    "ispot",
+    "comscore",
+    "impression",
+    "grp",
+    "multi",
 ]
 AddressableType = Literal["mvpd_stb", "acr", "both"]
 BuyerType = Literal["holding_company", "independent_agency", "brand_direct", "dsp"]
 HoldingCompany = Literal[
-    "wpp", "omnicom", "publicis", "ipg", "dentsu", "havas", "independent",
+    "wpp",
+    "omnicom",
+    "publicis",
+    "ipg",
+    "dentsu",
+    "havas",
+    "independent",
 ]
 DealStatus = Literal[
-    "proposed", "negotiating", "executed", "active",
-    "completed", "cancelled", "makegood_pending",
+    "proposed",
+    "negotiating",
+    "executed",
+    "active",
+    "completed",
+    "cancelled",
+    "makegood_pending",
 ]
 
 # Demo format regex: A25-54, W18-49, M25-54, P2+, HH
@@ -130,10 +146,12 @@ class MakegoodTerms(BaseModel):
         "original_broadcast_week", "original_broadcast_month", "within_flight_dates"
     ] = Field(description="TIP makegoodWindow")
     makegood_ratio: Optional[int] = Field(
-        default=None, description="Max makegood spots allowed (TIP)",
+        default=None,
+        description="Max makegood spots allowed (TIP)",
     )
     audience_limit_pct: Optional[float] = Field(
-        default=None, description="% of original primary audience (TIP)",
+        default=None,
+        description="% of original primary audience (TIP)",
     )
     external_comment: Optional[str] = None
 
@@ -182,11 +200,13 @@ class LinearTVProduct(BaseModel):
     medium: MediumType
     network_name: str = Field(description="OpenRTB 2.6 Channel name")
     network_domain: Optional[str] = Field(
-        default=None, description="OpenRTB 2.6 Channel domain for disambiguation",
+        default=None,
+        description="OpenRTB 2.6 Channel domain for disambiguation",
     )
     network_group: str = Field(description="OpenRTB 2.6 Network name (parent group)")
     station_group: Optional[str] = Field(
-        default=None, description="Local broadcast station group (Nexstar, Sinclair, etc.)",
+        default=None,
+        description="Local broadcast station group (Nexstar, Sinclair, etc.)",
     )
 
     # Seller classification — IAB sellers.json
@@ -210,7 +230,9 @@ class LinearTVProduct(BaseModel):
     floor_cpp: Decimal = Decimal("0")
     floor_cpm: Decimal = Decimal("0")
     upfront_rate_cpp: Optional[Decimal] = None
-    scatter_rate_multiplier: float = Field(default=1.15, description="e.g. 1.15 = 15% scatter premium")
+    scatter_rate_multiplier: float = Field(
+        default=1.15, description="e.g. 1.15 = 15% scatter premium"
+    )
 
     # Measurement
     measurement_currency: MeasurementCurrency = "nielsen_c3"
@@ -239,9 +261,7 @@ class LinearTVProduct(BaseModel):
     @classmethod
     def validate_demo_format(cls, v: str) -> str:
         if not DEMO_PATTERN.match(v):
-            raise ValueError(
-                f"Demo must match format like A25-54, W18-49, M25+, HH. Got: '{v}'"
-            )
+            raise ValueError(f"Demo must match format like A25-54, W18-49, M25+, HH. Got: '{v}'")
         return v
 
     @field_validator("secondary_demos")
@@ -352,7 +372,8 @@ class LinearDeal(BaseModel):
 
     # External linkage
     freewheel_deal_id: Optional[str] = Field(
-        default=None, description="Links to FreeWheel when 1A integration is active",
+        default=None,
+        description="Links to FreeWheel when 1A integration is active",
     )
     product_ids: list[str] = Field(default_factory=list)
 

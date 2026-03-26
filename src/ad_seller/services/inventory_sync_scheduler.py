@@ -45,7 +45,9 @@ async def _run_sync(include_archived: bool = False) -> dict:
 
         _last_sync = datetime.now(timezone.utc).isoformat()
         _sync_count += 1
-        logger.info("Scheduled inventory sync completed (count=%d, items=%d)", _sync_count, len(items))
+        logger.info(
+            "Scheduled inventory sync completed (count=%d, items=%d)", _sync_count, len(items)
+        )
         return {"status": "success", "items_synced": len(items), "synced_at": _last_sync}
     except Exception as e:
         logger.error("Scheduled inventory sync failed: %s", e)

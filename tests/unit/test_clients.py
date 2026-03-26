@@ -3,8 +3,7 @@
 
 """Unit tests for Ad Seller System clients."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from ad_seller.clients import Protocol
 

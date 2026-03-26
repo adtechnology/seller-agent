@@ -3,28 +3,23 @@
 
 """Unit tests for Ad Seller System models."""
 
-import pytest
-
 from ad_seller.models.buyer_identity import (
-    BuyerIdentity,
-    BuyerContext,
     AccessTier,
+    BuyerIdentity,
     IdentityLevel,
 )
-from ad_seller.models.pricing_tiers import (
-    TieredPricingConfig,
-    PricingTier,
-    VolumeDiscount,
-    DiscountType,
-)
-from ad_seller.models.flow_state import ProductDefinition
 from ad_seller.models.core import (
     DealType,
-    PricingModel,
-    ProposalStatus,
     Organization,
     OrganizationRole,
+    PricingModel,
     Product,
+    ProposalStatus,
+)
+from ad_seller.models.pricing_tiers import (
+    DiscountType,
+    PricingTier,
+    VolumeDiscount,
 )
 
 
@@ -89,7 +84,9 @@ class TestBuyerContext:
         assert advertiser_buyer_context.is_authenticated is True
         assert advertiser_buyer_context.effective_tier == AccessTier.ADVERTISER
 
-    def test_pricing_key_generation(self, public_buyer_context, agency_buyer_context, advertiser_buyer_context):
+    def test_pricing_key_generation(
+        self, public_buyer_context, agency_buyer_context, advertiser_buyer_context
+    ):
         """Test pricing key generation."""
         # Public context
         assert public_buyer_context.get_pricing_key() == "public"
@@ -100,7 +97,9 @@ class TestBuyerContext:
         # Advertiser context
         assert advertiser_buyer_context.get_pricing_key() == "advertiser:test-advertiser-001"
 
-    def test_negotiation_eligibility(self, public_buyer_context, agency_buyer_context, advertiser_buyer_context):
+    def test_negotiation_eligibility(
+        self, public_buyer_context, agency_buyer_context, advertiser_buyer_context
+    ):
         """Test negotiation eligibility based on tier."""
         assert public_buyer_context.eligible_for_negotiation is False
         assert agency_buyer_context.eligible_for_negotiation is True

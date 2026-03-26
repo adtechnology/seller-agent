@@ -15,22 +15,22 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from crewai.flow.flow import Flow, start, listen
+from crewai.flow.flow import Flow, listen, start
 
+from ..clients import Protocol, UnifiedClient
+from ..config import get_settings
+from ..models.core import DealType, PricingModel
 from ..models.flow_state import (
     ExecutionStatus,
     ProductDefinition,
     SellerFlowState,
 )
-from ..models.core import DealType, PricingModel
 from ..models.media_kit import (
     Package,
     PackageLayer,
     PackagePlacement,
     PackageStatus,
 )
-from ..clients import UnifiedClient, Protocol
-from ..config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,11 @@ class ProductSetupFlow(Flow[ProductSetupState]):
             if result.success:
                 orgs = result.data or []
                 existing = next(
-                    (o for o in orgs if o.get("organizationid") == self.state.seller_organization_id),
+                    (
+                        o
+                        for o in orgs
+                        if o.get("organizationid") == self.state.seller_organization_id
+                    ),
                     None,
                 )
 
@@ -100,7 +104,9 @@ class ProductSetupFlow(Flow[ProductSetupState]):
                     )
 
                     if not create_result.success:
-                        self.state.errors.append(f"Failed to create organization: {create_result.error}")
+                        self.state.errors.append(
+                            f"Failed to create organization: {create_result.error}"
+                        )
 
     @listen(ensure_seller_organization)
     async def sync_from_ad_server(self) -> None:
@@ -314,7 +320,12 @@ class ProductSetupFlow(Flow[ProductSetupState]):
             return "native"
         if "app" in name_lower or "mobile" in name_lower:
             return "mobile_app"
-        if "linear" in name_lower or "broadcast" in name_lower or "tv " in name_lower or "cable" in name_lower:
+        if (
+            "linear" in name_lower
+            or "broadcast" in name_lower
+            or "tv " in name_lower
+            or "cable" in name_lower
+        ):
             return "linear_tv"
         return "display"
 
@@ -357,7 +368,7 @@ class ProductSetupFlow(Flow[ProductSetupState]):
     @listen(sync_from_ad_server)
     async def create_default_products(self) -> None:
         """Create default products for common inventory types."""
-        async with UnifiedClient() as client:
+        async with UnifiedClient() as _client:
             # Define default products
             default_products = [
                 {
@@ -366,7 +377,10 @@ class ProductSetupFlow(Flow[ProductSetupState]):
                     "inventory_type": "display",
                     "base_cpm": 15.0,
                     "floor_cpm": 10.0,
-                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED, DealType.PREFERRED_DEAL],
+                    "supported_deal_types": [
+                        DealType.PROGRAMMATIC_GUARANTEED,
+                        DealType.PREFERRED_DEAL,
+                    ],
                     "supported_pricing_models": [PricingModel.CPM],
                 },
                 {
@@ -384,7 +398,10 @@ class ProductSetupFlow(Flow[ProductSetupState]):
                     "inventory_type": "video",
                     "base_cpm": 25.0,
                     "floor_cpm": 18.0,
-                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED, DealType.PREFERRED_DEAL],
+                    "supported_deal_types": [
+                        DealType.PROGRAMMATIC_GUARANTEED,
+                        DealType.PREFERRED_DEAL,
+                    ],
                     "supported_pricing_models": [PricingModel.CPM, PricingModel.CPCV],
                 },
                 {
@@ -430,7 +447,10 @@ class ProductSetupFlow(Flow[ProductSetupState]):
                     "inventory_type": "linear_tv",
                     "base_cpm": 22.0,
                     "floor_cpm": 15.0,
-                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED, DealType.PREFERRED_DEAL],
+                    "supported_deal_types": [
+                        DealType.PROGRAMMATIC_GUARANTEED,
+                        DealType.PREFERRED_DEAL,
+                    ],
                     "supported_pricing_models": [PricingModel.CPM],
                 },
                 {
@@ -462,7 +482,10 @@ class ProductSetupFlow(Flow[ProductSetupState]):
                     "inventory_type": "linear_tv",
                     "base_cpm": 55.0,
                     "floor_cpm": 40.0,
-                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED, DealType.PRIVATE_AUCTION],
+                    "supported_deal_types": [
+                        DealType.PROGRAMMATIC_GUARANTEED,
+                        DealType.PRIVATE_AUCTION,
+                    ],
                     "supported_pricing_models": [PricingModel.CPM],
                 },
                 # Linear TV — Reseller/SSP (PubMatic/Magnite)
@@ -472,7 +495,10 @@ class ProductSetupFlow(Flow[ProductSetupState]):
                     "inventory_type": "linear_tv",
                     "base_cpm": 30.0,
                     "floor_cpm": 20.0,
-                    "supported_deal_types": [DealType.PROGRAMMATIC_GUARANTEED, DealType.PRIVATE_AUCTION],
+                    "supported_deal_types": [
+                        DealType.PROGRAMMATIC_GUARANTEED,
+                        DealType.PRIVATE_AUCTION,
+                    ],
                     "supported_pricing_models": [PricingModel.CPM],
                 },
             ]

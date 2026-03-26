@@ -15,7 +15,6 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-
 # =============================================================================
 # Ad-server-agnostic result models
 # =============================================================================
@@ -310,13 +309,16 @@ def get_ad_server_client(ad_server_type: Optional[str] = None) -> AdServerClient
     """
     if ad_server_type is None:
         from ..config import get_settings
+
         ad_server_type = get_settings().ad_server_type
 
     if ad_server_type == "google_ad_manager":
         from .gam_adapter import GAMAdServerClient
+
         return GAMAdServerClient()
     elif ad_server_type == "freewheel":
         from .freewheel_adapter import FreeWheelAdServerClient
+
         return FreeWheelAdServerClient()
     else:
         raise ValueError(f"Unsupported ad server type: {ad_server_type}")

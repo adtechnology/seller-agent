@@ -20,12 +20,10 @@ Publishers can configure multiple SSPs simultaneously with routing rules.
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel
 
 # =============================================================================
 # SSP result models

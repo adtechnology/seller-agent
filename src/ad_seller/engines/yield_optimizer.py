@@ -11,10 +11,9 @@ Provides recommendations for the Inventory Manager to maximize:
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from ..models.buyer_identity import BuyerContext, AccessTier
-from ..models.flow_state import ProposalEvaluation
-from ..models.core import DealType
 from ..config import get_settings
+from ..models.buyer_identity import AccessTier, BuyerContext
+from ..models.flow_state import ProposalEvaluation
 
 
 @dataclass
@@ -321,13 +320,12 @@ class YieldOptimizer:
         elif overall_score >= 0.5:
             if revenue_score < 0.5 and relationship_score >= 0.6:
                 return "counter", (
-                    f"Strategic buyer but price needs improvement. "
-                    f"Counter with recommended price for better yield."
+                    "Strategic buyer but price needs improvement. "
+                    "Counter with recommended price for better yield."
                 )
             else:
                 return "accept", (
-                    f"Acceptable yield (score: {overall_score:.2f}). "
-                    f"Consider upsell opportunities."
+                    f"Acceptable yield (score: {overall_score:.2f}). Consider upsell opportunities."
                 )
         elif overall_score >= 0.3:
             return "counter", (
@@ -360,19 +358,18 @@ class YieldOptimizer:
         # Price counter
         if not evaluation.price_acceptable:
             counter_terms["price"] = evaluation.recommended_price
-            rationale_parts.append(
-                f"Increase price to ${evaluation.recommended_price:.2f} CPM"
-            )
+            rationale_parts.append(f"Increase price to ${evaluation.recommended_price:.2f} CPM")
 
         # Volume counter
         if evaluation.requested_impressions > evaluation.available_impressions:
             counter_terms["impressions"] = evaluation.available_impressions
-            rationale_parts.append(
-                f"Reduce impressions to {evaluation.available_impressions:,}"
-            )
+            rationale_parts.append(f"Reduce impressions to {evaluation.available_impressions:,}")
 
         # Relationship-based flexibility
-        if buyer_context and buyer_context.effective_tier in [AccessTier.AGENCY, AccessTier.ADVERTISER]:
+        if buyer_context and buyer_context.effective_tier in [
+            AccessTier.AGENCY,
+            AccessTier.ADVERTISER,
+        ]:
             # Strategic buyers get more flexibility
             counter_terms["negotiation_room"] = 0.05  # 5% additional discount possible
             rationale_parts.append("Strategic buyer - limited negotiation available")
@@ -416,19 +413,13 @@ class YieldOptimizer:
                     "Cross-sell: Add video for higher engagement and brand lift"
                 )
             if "display" in product_type and "ctv" in available_products:
-                upsell_opportunities.append(
-                    "Cross-sell: Extend to CTV for full-funnel coverage"
-                )
+                upsell_opportunities.append("Cross-sell: Extend to CTV for full-funnel coverage")
             if "video" in product_type and "ctv" in available_products:
-                upsell_opportunities.append(
-                    "Cross-sell: Add CTV for household-level reach"
-                )
+                upsell_opportunities.append("Cross-sell: Add CTV for household-level reach")
 
         # Commitment upsell
         if buyer_context and buyer_context.effective_tier != AccessTier.PUBLIC:
-            upsell_opportunities.append(
-                "Commitment bonus: Lock in Q2 now for preferred pricing"
-            )
+            upsell_opportunities.append("Commitment bonus: Lock in Q2 now for preferred pricing")
 
         if upsell_opportunities:
             return YieldRecommendation(

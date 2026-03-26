@@ -17,13 +17,12 @@ from typing import Optional
 
 from ..models.buyer_identity import AccessTier, BuyerContext
 from ..models.negotiation import (
-    NegotiationAction,
-    NegotiationHistory,
-    NegotiationLimits,
-    NegotiationRound,
-    NegotiationStrategy,
     STRATEGY_LIMITS,
     TIER_STRATEGY_MAP,
+    NegotiationAction,
+    NegotiationHistory,
+    NegotiationRound,
+    NegotiationStrategy,
 )
 from .pricing_rules_engine import PricingRulesEngine
 from .yield_optimizer import YieldOptimizer
@@ -90,9 +89,7 @@ class NegotiationEngine:
         # Apply tier discount to get the effective base price
         tier_adjusted_price = base_price
         if buyer_context:
-            price_display = self._pricing.get_price_display(
-                base_price, buyer_context=buyer_context
-            )
+            price_display = self._pricing.get_price_display(base_price, buyer_context=buyer_context)
             if price_display["type"] == "exact":
                 tier_adjusted_price = price_display["price"]
 
@@ -144,7 +141,9 @@ class NegotiationEngine:
         cumulative_concession = self._cumulative_concession(history)
 
         # 1. Accept if buyer meets or exceeds base price, or meets last counter
-        last_seller_price = history.rounds[-1].seller_price if history.rounds else history.base_price
+        last_seller_price = (
+            history.rounds[-1].seller_price if history.rounds else history.base_price
+        )
         if buyer_price >= history.base_price or buyer_price >= last_seller_price:
             return NegotiationRound(
                 round_number=round_number,
@@ -207,7 +206,11 @@ class NegotiationEngine:
                 history.floor_price,
                 history.base_price * (1 - limits.total_concession_cap),
             )
-            final_concession = (history.base_price - final_price) / history.base_price if history.base_price > 0 else 0.0
+            final_concession = (
+                (history.base_price - final_price) / history.base_price
+                if history.base_price > 0
+                else 0.0
+            )
 
             # Accept if buyer is already at or above our final offer
             if buyer_price >= final_price:
@@ -231,7 +234,7 @@ class NegotiationEngine:
                 rationale=(
                     f"Final offer at ${final_price:.2f} CPM. "
                     f"This represents our maximum concession of "
-                    f"{limits.total_concession_cap*100:.0f}%."
+                    f"{limits.total_concession_cap * 100:.0f}%."
                 ),
             )
 
@@ -353,7 +356,7 @@ class NegotiationEngine:
 
         # Clamp cumulative concession
         cumulative = self._cumulative_concession(history)
-        max_total_drop = history.base_price * (limits.total_concession_cap - cumulative)
+        _ = history.base_price * (limits.total_concession_cap - cumulative)
         if history.base_price - counter_price > history.base_price * limits.total_concession_cap:
             counter_price = history.base_price * (1 - limits.total_concession_cap)
 

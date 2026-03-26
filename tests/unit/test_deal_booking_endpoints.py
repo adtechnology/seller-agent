@@ -24,13 +24,12 @@ for _mod_name in _broken_flows:
         setattr(_stub, _cls_name, type(_cls_name, (), {}))
         sys.modules[_mod_name] = _stub
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # noqa: E402
 
-import httpx
-from httpx import ASGITransport
+import httpx  # noqa: E402
+from httpx import ASGITransport  # noqa: E402
 
-from ad_seller.interfaces.api.main import app, _get_optional_api_key_record
-
+from ad_seller.interfaces.api.main import _get_optional_api_key_record, app  # noqa: E402
 
 # =============================================================================
 # Helpers
@@ -103,7 +102,6 @@ def client(mock_storage):
 
 
 class TestBookDeal:
-
     async def test_happy_path_book_deal(self, client, mock_storage):
         quote = _make_available_quote()
         mock_storage._store[f"quote:{quote['quote_id']}"] = quote
@@ -195,7 +193,6 @@ class TestBookDeal:
 
 
 class TestGetDeal:
-
     async def test_retrieve_stored_deal(self, client, mock_storage):
         deal_data = {
             "deal_id": "DEMO-ABC123456789",
@@ -204,7 +201,11 @@ class TestGetDeal:
             "quote_id": "qt-test123456",
             "product": {"product_id": "ctv-premium-sports", "name": "CTV", "inventory_type": "ctv"},
             "pricing": {"base_cpm": 35.0, "final_cpm": 28.26, "currency": "USD"},
-            "terms": {"impressions": 5000000, "flight_start": "2026-04-01", "flight_end": "2026-04-30"},
+            "terms": {
+                "impressions": 5000000,
+                "flight_start": "2026-04-01",
+                "flight_end": "2026-04-30",
+            },
             "expires_at": (datetime.utcnow() + timedelta(days=29)).isoformat() + "Z",
             "created_at": datetime.utcnow().isoformat() + "Z",
         }
@@ -258,10 +259,9 @@ class TestGetDeal:
 
 
 class TestQuoteToDealFlow:
-
     async def test_full_quote_to_deal_flow(self, client, mock_storage):
-        from ad_seller.models.flow_state import ProductDefinition
         from ad_seller.models.core import DealType, PricingModel
+        from ad_seller.models.flow_state import ProductDefinition
 
         products = {
             "ctv-premium-sports": ProductDefinition(
@@ -285,13 +285,16 @@ class TestQuoteToDealFlow:
             patch("ad_seller.storage.factory.get_storage", return_value=mock_storage),
         ):
             # Step 1: Create quote
-            quote_resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports",
-                "deal_type": "PD",
-                "impressions": 5000000,
-                "flight_start": "2026-04-01",
-                "flight_end": "2026-04-30",
-            })
+            quote_resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "PD",
+                    "impressions": 5000000,
+                    "flight_start": "2026-04-01",
+                    "flight_end": "2026-04-30",
+                },
+            )
             assert quote_resp.status_code == 200
             quote_id = quote_resp.json()["quote_id"]
 

@@ -3,7 +3,7 @@
 
 """Proposal Validation Tool - Validate incoming proposals."""
 
-from typing import Any, Type
+from typing import Type
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -46,7 +46,14 @@ class ProposalValidationTool(BaseTool):
         warnings = []
 
         # Validate deal type
-        valid_deal_types = ["pg", "pd", "pa", "programmatic_guaranteed", "preferred_deal", "private_auction"]
+        valid_deal_types = [
+            "pg",
+            "pd",
+            "pa",
+            "programmatic_guaranteed",
+            "preferred_deal",
+            "private_auction",
+        ]
         if deal_type.lower() not in valid_deal_types:
             issues.append(f"Invalid deal type: {deal_type}")
 

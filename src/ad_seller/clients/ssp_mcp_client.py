@@ -11,11 +11,10 @@ PubMatic's MCP tools:
   - deal_troubleshooting: diagnose deal performance by deal_id
 """
 
-import json
 import logging
 from typing import Any, Optional
 
-from .freewheel_mcp_client import FreeWheelMCPClient, FreeWheelMCPError
+from .freewheel_mcp_client import FreeWheelMCPClient
 from .ssp_base import (
     SSPClient,
     SSPDeal,

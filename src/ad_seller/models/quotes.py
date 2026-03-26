@@ -10,7 +10,6 @@ Implements the two-phase quote-then-book flow:
 See: docs/api/deal-creation-api-contract.md (bead: ar-mkj)
 """
 
-from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 

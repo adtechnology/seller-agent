@@ -7,7 +7,7 @@ Manages Connected TV and streaming advertising inventory including
 OTT apps, FAST channels, and household-targeted inventory.
 """
 
-from crewai import Agent, LLM
+from crewai import LLM, Agent
 
 from ...config import get_settings
 

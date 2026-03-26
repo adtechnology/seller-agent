@@ -28,7 +28,6 @@ from .ad_server_base import (
 )
 from .freewheel_mcp_client import FreeWheelMCPClient
 from .freewheel_normalizer import (
-    dollars_to_micros,
     micros_to_dollars,
     normalize_audience_segments,
     normalize_booking_result,
@@ -99,6 +98,7 @@ class FreeWheelAdServerClient(AdServerClient):
     def _get_settings(self) -> Any:
         if self._settings is None:
             from ..config import get_settings
+
             self._settings = get_settings()
         return self._settings
 
@@ -127,8 +127,7 @@ class FreeWheelAdServerClient(AdServerClient):
         sh_url = settings.freewheel_sh_mcp_url
         if not sh_url:
             raise ConnectionError(
-                "FREEWHEEL_SH_MCP_URL not configured. "
-                "Set it to the Streaming Hub MCP endpoint."
+                "FREEWHEEL_SH_MCP_URL not configured. Set it to the Streaming Hub MCP endpoint."
             )
 
         # --- Streaming Hub auth (STUB — real auth TBD with FreeWheel team) ---

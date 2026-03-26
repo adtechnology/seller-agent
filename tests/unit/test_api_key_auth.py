@@ -3,14 +3,17 @@
 
 """Unit tests for API Key authentication models, service, and dependencies."""
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
+import pytest
+
+from ad_seller.auth.api_key_service import ApiKeyService
+from ad_seller.auth.dependencies import _extract_key_from_headers
 from ad_seller.models.api_key import (
+    API_KEY_INDEX_PREFIX,
     API_KEY_PREFIX,
     API_KEY_STORAGE_PREFIX,
-    API_KEY_INDEX_PREFIX,
     ApiKeyCreateRequest,
     ApiKeyCreateResponse,
     ApiKeyInfo,
@@ -24,9 +27,6 @@ from ad_seller.models.buyer_identity import (
     BuyerIdentity,
     IdentityLevel,
 )
-from ad_seller.auth.api_key_service import ApiKeyService
-from ad_seller.auth.dependencies import _extract_key_from_headers
-
 
 # =============================================================================
 # Fixtures

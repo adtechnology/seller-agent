@@ -15,16 +15,16 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from crewai.flow.flow import Flow, start, listen
+from crewai.flow.flow import Flow, listen, start
 
+from ..clients import UnifiedClient, get_ad_server_client
+from ..events.helpers import emit_event
+from ..events.models import EventType
+from ..models.core import DealType, ExecutionOrderStatus
 from ..models.flow_state import (
     ExecutionStatus,
     SellerFlowState,
 )
-from ..models.core import DealType, ExecutionOrderStatus
-from ..clients import UnifiedClient, Protocol, get_ad_server_client
-from ..events.helpers import emit_event
-from ..events.models import EventType
 
 
 class ExecutionState(SellerFlowState):
@@ -100,9 +100,7 @@ class ExecutionActivationFlow(Flow[ExecutionState]):
                 )
 
                 if not result.success:
-                    self.state.warnings.append(
-                        f"Could not create execution order: {result.error}"
-                    )
+                    self.state.warnings.append(f"Could not create execution order: {result.error}")
         except Exception as e:
             self.state.warnings.append(f"Execution order creation failed: {e}")
 
@@ -158,7 +156,9 @@ class ExecutionActivationFlow(Flow[ExecutionState]):
                 result = await ad_server.create_deal(
                     deal_id=deal.deal_id,
                     name=f"Deal {deal.deal_id}",
-                    deal_type=deal.deal_type.value if hasattr(deal.deal_type, "value") else str(deal.deal_type),
+                    deal_type=deal.deal_type.value
+                    if hasattr(deal.deal_type, "value")
+                    else str(deal.deal_type),
                     floor_price_micros=floor_micros,
                     fixed_price_micros=fixed_micros,
                 )
@@ -250,20 +250,23 @@ class ExecutionActivationFlow(Flow[ExecutionState]):
 
         try:
             from ..config import get_settings
+
             settings = get_settings()
 
             if not settings.ssp_connectors:
                 return  # No SSPs configured — skip
 
-            from ..clients.ssp_factory import build_ssp_registry
             from ..clients.ssp_base import SSPDealCreateRequest, SSPDealType
+            from ..clients.ssp_factory import build_ssp_registry
 
             registry = build_ssp_registry(settings)
             if not registry.list_ssps():
                 return
 
             # Map deal type
-            deal_type_str = deal.deal_type.value if hasattr(deal.deal_type, "value") else str(deal.deal_type)
+            deal_type_str = (
+                deal.deal_type.value if hasattr(deal.deal_type, "value") else str(deal.deal_type)
+            )
             ssp_deal_type = SSPDealType.PMP
             if "guaranteed" in deal_type_str:
                 ssp_deal_type = SSPDealType.PG

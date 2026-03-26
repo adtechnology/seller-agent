@@ -126,7 +126,9 @@ class Settings(BaseSettings):
     event_bus_enabled: bool = True
     approval_gate_enabled: bool = False  # Default off, opt-in
     approval_timeout_hours: int = 24
-    approval_required_flows: str = ""  # Comma-separated gate names: "proposal_decision,deal_registration"
+    approval_required_flows: str = (
+        ""  # Comma-separated gate names: "proposal_decision,deal_registration"
+    )
 
     # Session Configuration
     session_ttl_seconds: int = 604800  # 7 days

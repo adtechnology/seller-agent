@@ -140,7 +140,11 @@ class FreeWheelMCPClient:
         if result.isError:
             error_text = ""
             if result.content:
-                error_text = result.content[0].text if hasattr(result.content[0], "text") else str(result.content[0])
+                error_text = (
+                    result.content[0].text
+                    if hasattr(result.content[0], "text")
+                    else str(result.content[0])
+                )
             raise FreeWheelMCPError(
                 f"MCP tool '{tool_name}' failed: {error_text}",
                 data={"tool": tool_name, "arguments": arguments},
@@ -150,7 +154,11 @@ class FreeWheelMCPClient:
         if result.content:
             import json
 
-            text = result.content[0].text if hasattr(result.content[0], "text") else str(result.content[0])
+            text = (
+                result.content[0].text
+                if hasattr(result.content[0], "text")
+                else str(result.content[0])
+            )
             try:
                 return json.loads(text)
             except (json.JSONDecodeError, TypeError):

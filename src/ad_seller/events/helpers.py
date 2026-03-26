@@ -31,6 +31,7 @@ async def emit_event(
     """
     try:
         from .bus import get_event_bus
+
         bus = await get_event_bus()
         event = Event(
             event_type=event_type,

@@ -18,7 +18,6 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # =============================================================================
 # Enums
 # =============================================================================
@@ -249,9 +248,7 @@ class Product(BaseModel):
     description: Optional[str] = None
     inventory_segments: list[str] = Field(alias="inventorysegments")
     audience_targeting: Optional[dict[str, Any]] = Field(default=None, alias="audiencetargeting")
-    ad_product_targeting: Optional[dict[str, Any]] = Field(
-        default=None, alias="adproducttargeting"
-    )
+    ad_product_targeting: Optional[dict[str, Any]] = Field(default=None, alias="adproducttargeting")
     content_targeting: Optional[dict[str, Any]] = Field(default=None, alias="contenttargeting")
     commercial_terms: Optional[CommercialTerms] = Field(default=None, alias="commercialterms")
 
@@ -359,9 +356,7 @@ class ProposalLine(BaseModel):
     product_id: str = Field(alias="productid")
     deal_type: DealType = Field(alias="dealtype")
     audience_targeting: Optional[dict[str, Any]] = Field(default=None, alias="audiencetargeting")
-    ad_product_targeting: Optional[dict[str, Any]] = Field(
-        default=None, alias="adproducttargeting"
-    )
+    ad_product_targeting: Optional[dict[str, Any]] = Field(default=None, alias="adproducttargeting")
     content_targeting: Optional[dict[str, Any]] = Field(default=None, alias="contenttargeting")
     delivery_goal: DeliveryGoal = Field(alias="deliverygoal")
     pricing: Pricing
@@ -457,9 +452,7 @@ class Creative(BaseModel):
     creative_id: str = Field(alias="creativeid")
     ad_profile: AdProfile = Field(alias="adprofile")
     creative_manifest: CreativeManifest = Field(alias="creativemanifest")
-    ad_product_taxonomy: Optional[dict[str, Any]] = Field(
-        default=None, alias="adproducttaxonomy"
-    )
+    ad_product_taxonomy: Optional[dict[str, Any]] = Field(default=None, alias="adproducttaxonomy")
     audience_taxonomy: Optional[dict[str, Any]] = Field(default=None, alias="audiencetaxonomy")
     content_policy: Optional[ContentPolicy] = Field(default=None, alias="contentpolicy")
     review_status: ReviewStatus = Field(alias="reviewstatus")

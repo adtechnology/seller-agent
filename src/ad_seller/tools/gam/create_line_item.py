@@ -11,11 +11,11 @@ from pydantic import BaseModel, Field
 
 from ...config import get_settings
 from ...models.gam import (
+    GAMAdUnitTargeting,
     GAMCostType,
     GAMGoal,
     GAMGoalType,
     GAMInventoryTargeting,
-    GAMAdUnitTargeting,
     GAMLineItemType,
     GAMMoney,
     GAMTargeting,
@@ -178,7 +178,7 @@ class CreateGAMLineItemTool(BaseTool):
 
                 # Format response
                 lines = [
-                    f"Line item created successfully:\n",
+                    "Line item created successfully:\n",
                     f"- Line Item ID: {line_item.id}",
                     f"- Name: {line_item.name}",
                     f"- Order ID: {line_item.order_id}",

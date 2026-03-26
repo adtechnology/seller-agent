@@ -9,10 +9,7 @@ following the IAB Tech Lab UCP specification.
 
 import logging
 import math
-from datetime import datetime
 from typing import Any, Optional
-
-import httpx
 
 from ..models.ucp import (
     AudienceCapability,
@@ -92,9 +89,7 @@ class UCPClient:
             Similarity score (0-1 for cosine, unbounded for dot/L2)
         """
         if emb1.dimension != emb2.dimension:
-            logger.warning(
-                f"Dimension mismatch: {emb1.dimension} vs {emb2.dimension}"
-            )
+            logger.warning(f"Dimension mismatch: {emb1.dimension} vs {emb2.dimension}")
             return 0.0
 
         # Use recommended metric from model descriptor, or cosine as default
@@ -283,9 +278,7 @@ class UCPClient:
         gaps = []
         alternatives = []
         if audience_requirements:
-            gaps, alternatives = self._analyze_gaps(
-                audience_requirements, capabilities
-            )
+            gaps, alternatives = self._analyze_gaps(audience_requirements, capabilities)
 
         # Determine status
         if coverage_percentage >= self._minimum_coverage_threshold:
@@ -304,9 +297,7 @@ class UCPClient:
         # Estimate reach based on coverage
         estimated_reach = None
         if capabilities:
-            total_inventory = sum(
-                1000000 for cap in capabilities if cap.coverage_percentage > 0
-            )
+            total_inventory = sum(1000000 for cap in capabilities if cap.coverage_percentage > 0)
             estimated_reach = int(total_inventory * (coverage_percentage / 100))
 
         return AudienceValidationResult(
@@ -345,24 +336,20 @@ class UCPClient:
         # Check for demographic gaps
         demographics = requirements.get("demographics", {})
         if demographics:
-            has_demo_cap = any(
-                cap.signal_type == SignalType.IDENTITY
-                for cap in capabilities
-            )
+            has_demo_cap = any(cap.signal_type == SignalType.IDENTITY for cap in capabilities)
             if not has_demo_cap:
                 gaps.append("demographic_targeting")
-                alternatives.append({
-                    "gap": "demographic_targeting",
-                    "suggestion": "Use contextual signals as proxy for demographics",
-                })
+                alternatives.append(
+                    {
+                        "gap": "demographic_targeting",
+                        "suggestion": "Use contextual signals as proxy for demographics",
+                    }
+                )
 
         # Check for interest gaps
         interests = requirements.get("interests", [])
         if interests:
-            has_contextual = any(
-                cap.signal_type == SignalType.CONTEXTUAL
-                for cap in capabilities
-            )
+            has_contextual = any(cap.signal_type == SignalType.CONTEXTUAL for cap in capabilities)
             if not has_contextual:
                 gaps.append("interest_targeting")
 
@@ -370,15 +357,16 @@ class UCPClient:
         behaviors = requirements.get("behaviors", [])
         if behaviors:
             has_reinforcement = any(
-                cap.signal_type == SignalType.REINFORCEMENT
-                for cap in capabilities
+                cap.signal_type == SignalType.REINFORCEMENT for cap in capabilities
             )
             if not has_reinforcement:
                 gaps.append("behavioral_targeting")
-                alternatives.append({
-                    "gap": "behavioral_targeting",
-                    "suggestion": "Use contextual signals with frequency capping",
-                })
+                alternatives.append(
+                    {
+                        "gap": "behavioral_targeting",
+                        "suggestion": "Use contextual signals with frequency capping",
+                    }
+                )
 
         return gaps, alternatives
 
@@ -471,9 +459,7 @@ class UCPClient:
             "estimated_impressions": estimated_impressions,
             "matched_capabilities": [cap.capability_id for cap in matched],
             "confidence": "high" if len(matched) > 1 else "medium",
-            "limiting_factors": [
-                cap.name for cap in matched if cap.coverage_percentage < 50
-            ],
+            "limiting_factors": [cap.name for cap in matched if cap.coverage_percentage < 50],
         }
 
     def report_capabilities(
@@ -493,18 +479,17 @@ class UCPClient:
             signal = cap.signal_type.value
             if signal not in by_signal_type:
                 by_signal_type[signal] = []
-            by_signal_type[signal].append({
-                "capability_id": cap.capability_id,
-                "name": cap.name,
-                "coverage_percentage": cap.coverage_percentage,
-                "ucp_compatible": cap.ucp_compatible,
-            })
+            by_signal_type[signal].append(
+                {
+                    "capability_id": cap.capability_id,
+                    "name": cap.name,
+                    "coverage_percentage": cap.coverage_percentage,
+                    "ucp_compatible": cap.ucp_compatible,
+                }
+            )
 
         return {
-            "capabilities": [
-                cap.model_dump(by_alias=True, mode="json")
-                for cap in capabilities
-            ],
+            "capabilities": [cap.model_dump(by_alias=True, mode="json") for cap in capabilities],
             "by_signal_type": by_signal_type,
             "total_capabilities": len(capabilities),
             "ucp_compatible_count": sum(1 for cap in capabilities if cap.ucp_compatible),

@@ -22,7 +22,6 @@ from typing import Any, Callable, Optional
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Unified Order Status
 # ---------------------------------------------------------------------------
@@ -123,7 +122,6 @@ _DEFAULT_TRANSITIONS: list[tuple[OrderStatus, OrderStatus, str]] = [
     (OrderStatus.SYNCING, OrderStatus.BOOKED, "Ad server confirmed booking"),
     (OrderStatus.BOOKED, OrderStatus.COMPLETED, "Order fulfilled"),
     (OrderStatus.BOOKED, OrderStatus.UNBOOKED, "Booking reversed by ad server"),
-
     # Failure / cancellation from any active state
     (OrderStatus.DRAFT, OrderStatus.CANCELLED, "Cancelled before submission"),
     (OrderStatus.SUBMITTED, OrderStatus.CANCELLED, "Cancelled after submission"),
@@ -133,7 +131,6 @@ _DEFAULT_TRANSITIONS: list[tuple[OrderStatus, OrderStatus, str]] = [
     (OrderStatus.IN_PROGRESS, OrderStatus.FAILED, "Execution failed"),
     (OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED, "Cancelled during execution"),
     (OrderStatus.SYNCING, OrderStatus.FAILED, "Ad server sync failed"),
-
     # Re-submission
     (OrderStatus.REJECTED, OrderStatus.DRAFT, "Returned to draft for revision"),
     (OrderStatus.FAILED, OrderStatus.DRAFT, "Reset to draft after failure"),
@@ -156,7 +153,9 @@ def _build_default_rules() -> list[TransitionRule]:
 class InvalidTransitionError(Exception):
     """Raised when a state transition is not allowed."""
 
-    def __init__(self, order_id: str, from_status: OrderStatus, to_status: OrderStatus, reason: str = ""):
+    def __init__(
+        self, order_id: str, from_status: OrderStatus, to_status: OrderStatus, reason: str = ""
+    ):
         self.order_id = order_id
         self.from_status = from_status
         self.to_status = to_status
@@ -206,12 +205,11 @@ class OrderStateMachine:
 
     def allowed_transitions(self) -> list[OrderStatus]:
         """Return the list of states reachable from the current state."""
-        return [
-            to for (frm, to), _ in self._rule_index.items()
-            if frm == self._status
-        ]
+        return [to for (frm, to), _ in self._rule_index.items() if frm == self._status]
 
-    def can_transition(self, to_status: OrderStatus, context: Optional[dict[str, Any]] = None) -> bool:
+    def can_transition(
+        self, to_status: OrderStatus, context: Optional[dict[str, Any]] = None
+    ) -> bool:
         """Check whether a transition is permitted (including guard)."""
         rule = self._rule_index.get((self._status, to_status))
         if rule is None:
@@ -236,12 +234,16 @@ class OrderStateMachine:
         """
         rule = self._rule_index.get((self._status, to_status))
         if rule is None:
-            raise InvalidTransitionError(self.order_id, self._status, to_status, "no matching transition rule")
+            raise InvalidTransitionError(
+                self.order_id, self._status, to_status, "no matching transition rule"
+            )
 
         if rule.guard is not None:
             ctx = context or {}
             if not rule.guard(self.order_id, self._status, to_status, ctx):
-                raise InvalidTransitionError(self.order_id, self._status, to_status, "guard condition failed")
+                raise InvalidTransitionError(
+                    self.order_id, self._status, to_status, "guard condition failed"
+                )
 
         from_status = self._status
         self._status = to_status

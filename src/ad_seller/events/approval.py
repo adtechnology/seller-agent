@@ -63,6 +63,7 @@ class ApprovalGate:
         """
         # Publish the approval-requested event
         from .bus import get_event_bus
+
         bus = await get_event_bus()
 
         event = Event(
@@ -145,9 +146,7 @@ class ApprovalGate:
         request = ApprovalRequest(**data)
 
         if request.status != ApprovalStatus.PENDING:
-            raise ValueError(
-                f"Approval {approval_id} already resolved: {request.status}"
-            )
+            raise ValueError(f"Approval {approval_id} already resolved: {request.status}")
 
         # Check expiration
         if request.expires_at and datetime.utcnow() > request.expires_at:
@@ -191,11 +190,10 @@ class ApprovalGate:
 
         # Publish decision event
         from .bus import get_event_bus
+
         bus = await get_event_bus()
         event_type = (
-            EventType.APPROVAL_GRANTED
-            if decision == "approve"
-            else EventType.APPROVAL_DENIED
+            EventType.APPROVAL_GRANTED if decision == "approve" else EventType.APPROVAL_DENIED
         )
         await bus.publish(
             Event(

@@ -24,9 +24,7 @@ class AudienceValidationInput(BaseModel):
     audience_targeting: dict[str, Any] = Field(
         description="Buyer's audience targeting requirements"
     )
-    product_id: str = Field(
-        description="Product ID to validate against"
-    )
+    product_id: str = Field(description="Product ID to validate against")
     product_characteristics: Optional[dict[str, Any]] = Field(
         default=None,
         description="Product characteristics for embedding generation",
@@ -217,7 +215,11 @@ class AudienceValidationTool(BaseTool):
         output += "---\n"
         output += "**Recommendation:** "
 
-        if result.targeting_compatible and result.ucp_similarity_score and result.ucp_similarity_score >= 0.7:
+        if (
+            result.targeting_compatible
+            and result.ucp_similarity_score
+            and result.ucp_similarity_score >= 0.7
+        ):
             output += "Accept - audience can be fulfilled with high confidence."
         elif result.targeting_compatible:
             output += "Accept with caveats - partial coverage, set expectations appropriately."

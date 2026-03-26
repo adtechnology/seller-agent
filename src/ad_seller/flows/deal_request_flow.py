@@ -17,17 +17,17 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from crewai.flow.flow import Flow, start, listen
+from crewai.flow.flow import Flow, listen, start
 
+from ..config import get_settings
+from ..models.buyer_identity import AccessTier, BuyerContext, BuyerIdentity
+from ..models.core import DealType, PricingModel
 from ..models.flow_state import (
     DealOutput,
     ExecutionStatus,
     PricingDecision,
     SellerFlowState,
 )
-from ..models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
-from ..models.core import DealType, PricingModel
-from ..config import get_settings
 
 
 class DealRequestState(SellerFlowState):
@@ -187,12 +187,14 @@ class DealRequestFlow(Flow[DealRequestState]):
 
         self.state.pricing_decisions[product_type] = PricingDecision(
             product_id=product_type,
-            deal_type=DealType(self.state.parsed_request.get("deal_type", "preferred_deal").replace("_", "")),
+            deal_type=DealType(
+                self.state.parsed_request.get("deal_type", "preferred_deal").replace("_", "")
+            ),
             buyer_tier=tier.value,
             base_price=base_price,
             tier_discount=discount,
             final_price=round(final_price, 2),
-            rationale=f"Base ${base_price} CPM with {discount*100:.0f}% {tier.value} tier discount",
+            rationale=f"Base ${base_price} CPM with {discount * 100:.0f}% {tier.value} tier discount",
         )
 
     @listen(apply_tiered_pricing)
@@ -235,7 +237,9 @@ class DealRequestFlow(Flow[DealRequestState]):
             buyer_organization_id=self.state.buyer_context.identity.agency_id or "human-buyer",
             seller_organization_id=self.state.seller_organization_id or "default-seller",
             flight_start=datetime.utcnow().strftime("%Y-%m-%d"),
-            flight_end=(datetime.utcnow().replace(month=datetime.utcnow().month + 1)).strftime("%Y-%m-%d"),
+            flight_end=(datetime.utcnow().replace(month=datetime.utcnow().month + 1)).strftime(
+                "%Y-%m-%d"
+            ),
             activation_type="traditional_dsp",
             dsp_compatible=True,
         )
@@ -256,9 +260,9 @@ class DealRequestFlow(Flow[DealRequestState]):
 **Deal Created Successfully**
 
 **Deal ID**: `{deal.deal_id}`
-**Deal Type**: {deal.deal_type.value.replace('_', ' ').title()}
+**Deal Type**: {deal.deal_type.value.replace("_", " ").title()}
 **Price**: ${deal.price:.2f} CPM
-**Inventory**: {deal.product_id.replace('_', ' ').title()}
+**Inventory**: {deal.product_id.replace("_", " ").title()}
 
 **Activation Instructions**:
 
@@ -286,7 +290,7 @@ Need help? Contact your account manager or reply to this message.
                 self.state.response_text = f"""
 **Pricing Information**
 
-**Product**: {product_type.replace('_', ' ').title()} Inventory
+**Product**: {product_type.replace("_", " ").title()} Inventory
 **Your Rate**: ${pricing.final_price:.2f} CPM
 **Pricing Tier**: {pricing.buyer_tier.title()}
 
@@ -319,7 +323,9 @@ Ready to create a deal? Just let me know and I'll generate a Deal ID for you.
         """
         self.state.request_text = request_text
         self.state.buyer_context = buyer_context
-        self.state.seller_organization_id = seller_organization_id or self._settings.seller_organization_id or ""
+        self.state.seller_organization_id = (
+            seller_organization_id or self._settings.seller_organization_id or ""
+        )
 
         # Run the flow
         self.kickoff()

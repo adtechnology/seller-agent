@@ -7,7 +7,7 @@ import json
 from typing import Type
 
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class GetSupplyChainInput(BaseModel):
@@ -35,7 +35,7 @@ class GetSupplyChainTool(BaseTool):
     def _run(self) -> str:
         """Return supply chain info, from sellers.json if available."""
         from ...config import get_settings
-        from ...models.supply_chain import load_sellers_json, build_schain_from_sellers_json
+        from ...models.supply_chain import build_schain_from_sellers_json, load_sellers_json
 
         settings = get_settings()
         seller_domain = getattr(settings, "seller_domain", "demo-publisher.example.com")
@@ -58,7 +58,11 @@ class GetSupplyChainTool(BaseTool):
                 "seller_type": primary.seller_type if primary else "PUBLISHER",
                 "domain": primary.domain if primary else seller_domain,
                 "is_direct": primary.seller_type == "PUBLISHER" if primary else True,
-                "supported_deal_types": ["programmatic_guaranteed", "preferred_deal", "private_auction"],
+                "supported_deal_types": [
+                    "programmatic_guaranteed",
+                    "preferred_deal",
+                    "private_auction",
+                ],
                 "contact_email": sellers_json.contact_email,
                 "schain": schain_obj.model_dump(),
                 "version": sellers_json.version,
@@ -70,12 +74,22 @@ class GetSupplyChainTool(BaseTool):
                 "seller_type": "PUBLISHER",
                 "domain": seller_domain,
                 "is_direct": True,
-                "supported_deal_types": ["programmatic_guaranteed", "preferred_deal", "private_auction"],
+                "supported_deal_types": [
+                    "programmatic_guaranteed",
+                    "preferred_deal",
+                    "private_auction",
+                ],
                 "schain": {
                     "ver": "1.0",
                     "complete": 1,
                     "nodes": [
-                        {"asi": seller_domain, "sid": seller_id, "hp": 1, "name": seller_name, "domain": seller_domain},
+                        {
+                            "asi": seller_domain,
+                            "sid": seller_id,
+                            "hp": 1,
+                            "name": seller_name,
+                            "domain": seller_domain,
+                        },
                     ],
                 },
             }

@@ -78,8 +78,9 @@ class CreatePrivateAuctionDealTool(BaseTool):
             )
 
         try:
-            from ...clients import GAMRestClient
             import asyncio
+
+            from ...clients import GAMRestClient
 
             async def create_deal():
                 async with GAMRestClient(
@@ -101,7 +102,7 @@ class CreatePrivateAuctionDealTool(BaseTool):
 
             # Format response
             lines = [
-                f"Private auction deal created successfully:\n",
+                "Private auction deal created successfully:\n",
                 f"- Deal ID: {deal.id}",
                 f"- Private Auction ID: {deal.private_auction_id}",
                 f"- Buyer Account ID: {deal.buyer_account_id}",

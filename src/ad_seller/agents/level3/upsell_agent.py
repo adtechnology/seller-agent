@@ -7,7 +7,7 @@ Identifies opportunities to expand deals, cross-sell inventory,
 and propose alternatives when rejecting proposals.
 """
 
-from crewai import Agent, LLM
+from crewai import LLM, Agent
 
 from ...config import get_settings
 

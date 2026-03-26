@@ -30,12 +30,12 @@ from ..clients.agent_registry_client import (
     fetch_agent_card,
 )
 from ..models.agent_registry import (
+    TRUST_TO_TIER_MAP,
     AgentCard,
     AgentType,
     RegisteredAgent,
     RegistrySource,
     TrustStatus,
-    TRUST_TO_TIER_MAP,
 )
 from ..models.buyer_identity import AccessTier
 from ..storage.base import StorageBackend
@@ -281,9 +281,7 @@ class AgentRegistryService:
 
     async def _save_agent(self, agent: RegisteredAgent) -> None:
         """Persist agent and maintain URL index."""
-        await self._storage.set_agent(
-            agent.agent_id, agent.model_dump(mode="json")
-        )
+        await self._storage.set_agent(agent.agent_id, agent.model_dump(mode="json"))
         # Maintain URL → agent_id index
         index_key = f"agent_url_index:{_url_hash(agent.agent_card.url)}"
         await self._storage.set(index_key, agent.agent_id)

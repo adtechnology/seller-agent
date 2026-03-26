@@ -3,9 +3,13 @@
 
 """Unit tests for Linear TV models, tools, and classification."""
 
-import pytest
 from decimal import Decimal
 
+import pytest
+
+from ad_seller.constants.dma_codes import DMA_CODES
+from ad_seller.models.core import DealType
+from ad_seller.models.flow_state import ProductDefinition
 from ad_seller.models.linear_tv import (
     Daypart,
     LinearDeal,
@@ -13,24 +17,20 @@ from ad_seller.models.linear_tv import (
     MakegoodTerms,
     SupplyPoolEntry,
 )
-from ad_seller.models.flow_state import ProductDefinition
-from ad_seller.models.core import DealType, PricingModel
-from ad_seller.constants.dma_codes import DMA_CODES
 from ad_seller.tools.linear import (
+    AddressableTargetingTool,
+    AirtimeReportingTool,
+    DMAAvailsTool,
+    LinearAudienceForecastTool,
+    LinearAvailsTool,
+    LinearBillingReconciliationTool,
+    LinearOrderTool,
     LinearPricingTool,
+    LinearReachFrequencyTool,
+    MakegoodPoolTool,
     ScatterPricingTool,
     UpfrontDealCalculator,
-    LinearAvailsTool,
-    DMAAvailsTool,
-    MakegoodPoolTool,
-    LinearAudienceForecastTool,
-    LinearReachFrequencyTool,
-    AddressableTargetingTool,
-    LinearOrderTool,
-    AirtimeReportingTool,
-    LinearBillingReconciliationTool,
 )
-
 
 # =============================================================================
 # DMA Codes
@@ -132,8 +132,15 @@ class TestDaypart:
     def test_all_daypart_names(self):
         """Verify all 9 standard dayparts can be created."""
         dayparts = [
-            "early_morning", "daytime", "early_fringe", "prime_access",
-            "primetime", "late_news", "late_fringe", "overnight", "weekend",
+            "early_morning",
+            "daytime",
+            "early_fringe",
+            "prime_access",
+            "primetime",
+            "late_news",
+            "late_fringe",
+            "overnight",
+            "weekend",
         ]
         for name in dayparts:
             dp = Daypart(name=name, start_time="00:00:00", end_time="23:59:00")
@@ -169,7 +176,11 @@ class TestMakegoodTerms:
         assert terms.audience_limit_pct == 90.0
 
     def test_all_windows(self):
-        for window in ["original_broadcast_week", "original_broadcast_month", "within_flight_dates"]:
+        for window in [
+            "original_broadcast_week",
+            "original_broadcast_month",
+            "within_flight_dates",
+        ]:
             terms = MakegoodTerms(
                 makegood_type="resolve_preemption",
                 sales_element_equivalent="same_sales_element",
@@ -275,43 +286,61 @@ class TestLinearTVProduct:
 
     def test_demo_validation_valid(self):
         product = LinearTVProduct(
-            name="Test", medium="broadcast", network_name="NBC",
-            network_group="NBCU", primary_demo="A25-54",
+            name="Test",
+            medium="broadcast",
+            network_name="NBC",
+            network_group="NBCU",
+            primary_demo="A25-54",
         )
         assert product.primary_demo == "A25-54"
 
     def test_demo_validation_women(self):
         product = LinearTVProduct(
-            name="Test", medium="broadcast", network_name="NBC",
-            network_group="NBCU", primary_demo="W18-49",
+            name="Test",
+            medium="broadcast",
+            network_name="NBC",
+            network_group="NBCU",
+            primary_demo="W18-49",
         )
         assert product.primary_demo == "W18-49"
 
     def test_demo_validation_hh(self):
         product = LinearTVProduct(
-            name="Test", medium="broadcast", network_name="NBC",
-            network_group="NBCU", primary_demo="HH",
+            name="Test",
+            medium="broadcast",
+            network_name="NBC",
+            network_group="NBCU",
+            primary_demo="HH",
         )
         assert product.primary_demo == "HH"
 
     def test_demo_validation_plus(self):
         product = LinearTVProduct(
-            name="Test", medium="broadcast", network_name="NBC",
-            network_group="NBCU", primary_demo="P2+",
+            name="Test",
+            medium="broadcast",
+            network_name="NBC",
+            network_group="NBCU",
+            primary_demo="P2+",
         )
         assert product.primary_demo == "P2+"
 
     def test_demo_validation_invalid(self):
         with pytest.raises(ValueError, match="Demo must match"):
             LinearTVProduct(
-                name="Test", medium="broadcast", network_name="NBC",
-                network_group="NBCU", primary_demo="adults 25-54",
+                name="Test",
+                medium="broadcast",
+                network_name="NBC",
+                network_group="NBCU",
+                primary_demo="adults 25-54",
             )
 
     def test_dma_validation_valid(self):
         product = LinearTVProduct(
-            name="Test", medium="broadcast", network_name="NBC",
-            network_group="NBCU", primary_demo="A25-54",
+            name="Test",
+            medium="broadcast",
+            network_name="NBC",
+            network_group="NBCU",
+            primary_demo="A25-54",
             dma_codes=[501, 803],
         )
         assert product.dma_codes == [501, 803]
@@ -319,24 +348,43 @@ class TestLinearTVProduct:
     def test_dma_validation_invalid(self):
         with pytest.raises(ValueError, match="Invalid DMA codes"):
             LinearTVProduct(
-                name="Test", medium="broadcast", network_name="NBC",
-                network_group="NBCU", primary_demo="A25-54",
+                name="Test",
+                medium="broadcast",
+                network_name="NBC",
+                network_group="NBCU",
+                primary_demo="A25-54",
                 dma_codes=[999],
             )
 
     def test_secondary_demos(self):
         product = LinearTVProduct(
-            name="Test", medium="broadcast", network_name="NBC",
-            network_group="NBCU", primary_demo="A25-54",
+            name="Test",
+            medium="broadcast",
+            network_name="NBC",
+            network_group="NBCU",
+            primary_demo="A25-54",
             secondary_demos=["W18-49", "M25-54"],
         )
         assert len(product.secondary_demos) == 2
 
     def test_measurement_currencies(self):
-        for currency in ["nielsen_c3", "nielsen_c7", "nielsen_one", "videoamp", "ispot", "comscore", "impression", "grp", "multi"]:
+        for currency in [
+            "nielsen_c3",
+            "nielsen_c7",
+            "nielsen_one",
+            "videoamp",
+            "ispot",
+            "comscore",
+            "impression",
+            "grp",
+            "multi",
+        ]:
             product = LinearTVProduct(
-                name="Test", medium="broadcast", network_name="NBC",
-                network_group="NBCU", primary_demo="A25-54",
+                name="Test",
+                medium="broadcast",
+                network_name="NBC",
+                network_group="NBCU",
+                primary_demo="A25-54",
                 measurement_currency=currency,
             )
             assert product.measurement_currency == currency
@@ -344,8 +392,11 @@ class TestLinearTVProduct:
     def test_all_medium_types(self):
         for medium in ["broadcast", "cable", "syndication", "mvpd_avail"]:
             product = LinearTVProduct(
-                name="Test", medium=medium, network_name="NBC",
-                network_group="NBCU", primary_demo="A25-54",
+                name="Test",
+                medium=medium,
+                network_name="NBC",
+                network_group="NBCU",
+                primary_demo="A25-54",
             )
             assert product.medium == medium
 
@@ -354,13 +405,26 @@ class TestLinearTVProduct:
 
     def test_dayparts_on_product(self):
         product = LinearTVProduct(
-            name="Test", medium="broadcast", network_name="NBC",
-            network_group="NBCU", primary_demo="A25-54",
+            name="Test",
+            medium="broadcast",
+            network_name="NBC",
+            network_group="NBCU",
+            primary_demo="A25-54",
             dayparts=[
-                Daypart(name="primetime", start_time="20:00:00", end_time="23:00:00",
-                        available_units=100, sold_units=85),
-                Daypart(name="daytime", start_time="10:00:00", end_time="16:00:00",
-                        available_units=200, sold_units=80),
+                Daypart(
+                    name="primetime",
+                    start_time="20:00:00",
+                    end_time="23:00:00",
+                    available_units=100,
+                    sold_units=85,
+                ),
+                Daypart(
+                    name="daytime",
+                    start_time="10:00:00",
+                    end_time="16:00:00",
+                    available_units=200,
+                    sold_units=80,
+                ),
             ],
         )
         assert len(product.dayparts) == 2
@@ -425,7 +489,15 @@ class TestLinearDeal:
         assert deal.makegood_terms.audience_limit_pct == 90.0
 
     def test_deal_statuses(self):
-        for status in ["proposed", "negotiating", "executed", "active", "completed", "cancelled", "makegood_pending"]:
+        for status in [
+            "proposed",
+            "negotiating",
+            "executed",
+            "active",
+            "completed",
+            "cancelled",
+            "makegood_pending",
+        ]:
             deal = LinearDeal(market_type="scatter", buyer_type="brand_direct", status=status)
             assert deal.status == status
 
@@ -481,8 +553,10 @@ class TestPricingTools:
     def test_linear_pricing_upfront(self):
         tool = LinearPricingTool()
         result = tool._run(
-            network="NBC", daypart="primetime",
-            market_type="upfront", base_rate_cpm=50.0,
+            network="NBC",
+            daypart="primetime",
+            market_type="upfront",
+            base_rate_cpm=50.0,
         )
         assert "UPFRONT" in result
 
@@ -501,8 +575,10 @@ class TestPricingTools:
     def test_scatter_pricing_low_sellthrough(self):
         tool = ScatterPricingTool()
         result = tool._run(
-            network="USA", daypart="daytime",
-            sellthrough_pct=30.0, base_rate_cpm=15.0,
+            network="USA",
+            daypart="daytime",
+            sellthrough_pct=30.0,
+            base_rate_cpm=15.0,
         )
         assert "DOWN" in result
 

@@ -3,8 +3,6 @@
 
 """Tests for FreeWheel response normalizer."""
 
-import pytest
-
 from ad_seller.clients.ad_server_base import AdServerType, DealStatus
 from ad_seller.clients.freewheel_normalizer import (
     dollars_to_micros,

@@ -16,20 +16,20 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from crewai.flow.flow import Flow, start, listen, or_
+from crewai.flow.flow import Flow, listen, or_, start
 
+from ..clients.ucp_client import UCPClient
+from ..config import get_settings
+from ..crews import create_proposal_review_crew
+from ..events.helpers import emit_event
+from ..events.models import EventType
+from ..models.buyer_identity import BuyerContext
 from ..models.flow_state import (
     ExecutionStatus,
     ProposalEvaluation,
     SellerFlowState,
 )
-from ..models.buyer_identity import BuyerContext
 from ..models.ucp import AudienceCapability, SignalType
-from ..clients.ucp_client import UCPClient
-from ..crews import create_proposal_review_crew
-from ..config import get_settings
-from ..events.helpers import emit_event
-from ..events.models import EventType
 
 
 class ProposalState(SellerFlowState):
@@ -144,15 +144,11 @@ class ProposalHandlingFlow(Flow[ProposalState]):
                 "audience_targeting": product.audience_targeting,
                 "content_targeting": product.content_targeting,
             }
-            product_embedding = ucp_client.create_inventory_embedding(
-                product_characteristics
-            )
+            product_embedding = ucp_client.create_inventory_embedding(product_characteristics)
 
             # Create buyer query embedding
             buyer_embedding = ucp_client.create_embedding(
-                vector=ucp_client._generate_synthetic_embedding(
-                    audience_targeting, 512
-                ),
+                vector=ucp_client._generate_synthetic_embedding(audience_targeting, 512),
                 embedding_type=__import__(
                     "ad_seller.models.ucp", fromlist=["EmbeddingType"]
                 ).EmbeddingType.QUERY,
@@ -319,7 +315,9 @@ class ProposalHandlingFlow(Flow[ProposalState]):
                 proposal_id=self.state.proposal_id,
                 payload={
                     "recommendation": self.state.recommendation,
-                    "evaluation": self.state.evaluation.model_dump() if self.state.evaluation else None,
+                    "evaluation": self.state.evaluation.model_dump()
+                    if self.state.evaluation
+                    else None,
                 },
             )
 
@@ -402,24 +400,30 @@ class ProposalHandlingFlow(Flow[ProposalState]):
         """Identify upsell opportunities."""
         if self.state.recommendation == "reject":
             # Even on reject, suggest alternatives
-            self.state.upsell_suggestions.append({
-                "type": "alternative_product",
-                "message": "Consider our other inventory options",
-            })
+            self.state.upsell_suggestions.append(
+                {
+                    "type": "alternative_product",
+                    "message": "Consider our other inventory options",
+                }
+            )
             return
 
         # Suggest volume upgrade
         if self.state.evaluation and self.state.evaluation.impressions_available:
-            self.state.upsell_suggestions.append({
-                "type": "volume_upgrade",
-                "message": "Add 20% more impressions for a 10% volume discount",
-            })
+            self.state.upsell_suggestions.append(
+                {
+                    "type": "volume_upgrade",
+                    "message": "Add 20% more impressions for a 10% volume discount",
+                }
+            )
 
         # Suggest cross-sell
-        self.state.upsell_suggestions.append({
-            "type": "cross_sell",
-            "message": "Extend your campaign to CTV for full-funnel coverage",
-        })
+        self.state.upsell_suggestions.append(
+            {
+                "type": "cross_sell",
+                "message": "Extend your campaign to CTV for full-funnel coverage",
+            }
+        )
 
     @listen(or_(generate_counter_terms, identify_upsell))
     async def execute_decision(self) -> None:
@@ -427,11 +431,9 @@ class ProposalHandlingFlow(Flow[ProposalState]):
         settings = get_settings()
 
         # Check if approval gate is enabled for proposal decisions
-        approval_enabled = (
-            getattr(settings, "approval_gate_enabled", False)
-            and "proposal_decision"
-            in getattr(settings, "approval_required_flows", "").split(",")
-        )
+        approval_enabled = getattr(
+            settings, "approval_gate_enabled", False
+        ) and "proposal_decision" in getattr(settings, "approval_required_flows", "").split(",")
 
         if approval_enabled and self.state.recommendation in ("accept", "counter"):
             # Gate: mark as pending approval and return

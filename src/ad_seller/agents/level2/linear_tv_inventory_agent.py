@@ -19,7 +19,7 @@ Two-mode operation:
   integration lands)
 """
 
-from crewai import Agent, LLM
+from crewai import LLM, Agent
 
 from ...config import get_settings
 

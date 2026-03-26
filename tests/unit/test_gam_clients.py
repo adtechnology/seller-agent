@@ -3,33 +3,21 @@
 
 """Unit tests for GAM clients."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from ad_seller.clients.gam_rest_client import GAMRestClient
 from ad_seller.clients.gam_soap_client import GAMSoapClient
 from ad_seller.models.gam import (
-    GAMAdUnit,
-    GAMAdUnitSize,
-    GAMAudienceSegment,
     GAMAudienceSegmentStatus,
     GAMAudienceSegmentType,
-    GAMGoal,
-    GAMGoalType,
-    GAMInventoryTargeting,
-    GAMAdUnitTargeting,
-    GAMLineItem,
+    GAMCostType,
     GAMLineItemType,
     GAMMoney,
-    GAMOrder,
     GAMOrderStatus,
-    GAMPrivateAuction,
     GAMPrivateAuctionDeal,
-    GAMSize,
-    GAMTargeting,
-    GAMUnitType,
-    GAMCostType,
 )
 
 

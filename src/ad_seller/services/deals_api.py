@@ -17,7 +17,6 @@ Deal lifecycle:
 Buyer seat status: pending → approved → ready_to_serve → active → complete
 """
 
-import json
 import logging
 from datetime import datetime, timezone
 from enum import Enum
@@ -231,7 +230,9 @@ class DealsAPIService:
                         deal_id=deal.deal_id,
                         buyer_url=buyer_url,
                         success=True,
-                        buyer_status=BuyerSeatStatus(buyer_status) if buyer_status in BuyerSeatStatus.__members__.values() else BuyerSeatStatus.PENDING,
+                        buyer_status=BuyerSeatStatus(buyer_status)
+                        if buyer_status in BuyerSeatStatus.__members__.values()
+                        else BuyerSeatStatus.PENDING,
                         response_code=response.status_code,
                         pushed_at=now,
                     )
@@ -284,7 +285,9 @@ class DealsAPIService:
                 return DealStatusQuery(
                     deal_id=deal_id,
                     buyer_url=buyer_url,
-                    buyer_status=BuyerSeatStatus(status_str) if status_str in BuyerSeatStatus.__members__.values() else BuyerSeatStatus.PENDING,
+                    buyer_status=BuyerSeatStatus(status_str)
+                    if status_str in BuyerSeatStatus.__members__.values()
+                    else BuyerSeatStatus.PENDING,
                     last_checked=now,
                 )
 

@@ -8,8 +8,6 @@ from typing import Any, Optional, Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-from ...models.ucp import SignalType
-
 
 class CoverageCalculatorInput(BaseModel):
     """Input schema for coverage calculator tool."""
@@ -17,9 +15,7 @@ class CoverageCalculatorInput(BaseModel):
     targeting: dict[str, Any] = Field(
         description="Targeting specification to calculate coverage for"
     )
-    product_id: str = Field(
-        description="Product ID to calculate coverage against"
-    )
+    product_id: str = Field(description="Product ID to calculate coverage against")
     total_inventory: Optional[int] = Field(
         default=10000000,
         ge=0,
@@ -79,14 +75,12 @@ class CoverageCalculatorTool(BaseTool):
             "language": 0.98,
             "daypart": 1.0,
             "time_of_day": 1.0,
-
             # Identity (moderate coverage)
             "demographics": 0.70,
             "age": 0.72,
             "gender": 0.68,
             "income": 0.55,
             "education": 0.50,
-
             # Behavioral (lower coverage)
             "behaviors": 0.35,
             "interests": 0.45,
@@ -122,7 +116,7 @@ class CoverageCalculatorTool(BaseTool):
                 }
 
                 if factor < 0.5:
-                    limiting_factors.append(f"{key} ({factor*100:.0f}% coverage)")
+                    limiting_factors.append(f"{key} ({factor * 100:.0f}% coverage)")
 
         if not active_factors:
             # No targeting = full coverage
@@ -190,7 +184,9 @@ class CoverageCalculatorTool(BaseTool):
         output += f"   Estimated Impressions: {impressions:,}\n"
         output += f"   Total Inventory: {result['total_inventory']:,}\n"
         output += f"   Confidence: {confidence}\n"
-        output += f"   Deliverable: {'Yes' if result['is_deliverable'] else 'No - coverage too low'}\n"
+        output += (
+            f"   Deliverable: {'Yes' if result['is_deliverable'] else 'No - coverage too low'}\n"
+        )
         output += "\n"
 
         # Targeting breakdown
@@ -223,7 +219,9 @@ class CoverageCalculatorTool(BaseTool):
         if coverage >= 50:
             output += "- Coverage is strong - targeting is deliverable at scale\n"
         elif coverage >= 20:
-            output += "- Coverage is moderate - delivery is feasible but may require extended flight\n"
+            output += (
+                "- Coverage is moderate - delivery is feasible but may require extended flight\n"
+            )
         elif coverage >= 5:
             output += "- Coverage is limited - consider relaxing targeting constraints\n"
             output += "- Recommend discussing reach vs. precision tradeoff with buyer\n"

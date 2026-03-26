@@ -90,7 +90,7 @@ class CreateGAMOrderTool(BaseTool):
 
                 # Format response
                 lines = [
-                    f"Order created successfully:\n",
+                    "Order created successfully:\n",
                     f"- Order ID: {order.id}",
                     f"- Name: {order.name}",
                     f"- Advertiser ID: {order.advertiser_id}",

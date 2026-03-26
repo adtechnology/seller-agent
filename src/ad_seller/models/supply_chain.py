@@ -91,13 +91,15 @@ def build_schain_from_sellers_json(
     """
     nodes = []
     for seller in sellers_json.sellers:
-        nodes.append(SchainNode(
-            asi=seller.domain,
-            sid=seller.seller_id,
-            hp=1,
-            name=seller.name,
-            domain=seller.domain,
-        ))
+        nodes.append(
+            SchainNode(
+                asi=seller.domain,
+                sid=seller.seller_id,
+                hp=1,
+                name=seller.name,
+                domain=seller.domain,
+            )
+        )
 
     # complete=1 if the primary seller is a PUBLISHER (full chain known)
     primary = next((s for s in sellers_json.sellers if s.seller_id == seller_id), None)

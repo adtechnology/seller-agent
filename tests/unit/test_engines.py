@@ -6,10 +6,7 @@
 import pytest
 
 from ad_seller.engines.pricing_rules_engine import PricingRulesEngine
-from ad_seller.models.buyer_identity import BuyerIdentity, BuyerContext, AccessTier
-from ad_seller.models.pricing_tiers import TieredPricingConfig
-from ad_seller.models.flow_state import ProductDefinition
-from ad_seller.models.core import DealType, PricingModel
+from ad_seller.models.core import PricingModel
 
 
 class TestPricingRulesEngine:
@@ -60,7 +57,9 @@ class TestPricingRulesEngine:
         assert result.final_price == expected_price
         assert result.tier_discount == 0.15
 
-    def test_volume_discount_application(self, pricing_engine, sample_product, advertiser_buyer_context):
+    def test_volume_discount_application(
+        self, pricing_engine, sample_product, advertiser_buyer_context
+    ):
         """Test volume discounts are applied for large orders."""
         # Small volume - no additional volume discount
         small_result = pricing_engine.calculate_price(
@@ -179,7 +178,9 @@ class TestPricingDecisionOutput:
         assert result.rationale is not None
         assert len(result.applied_rules) > 0
 
-    def test_pricing_decision_rationale(self, pricing_engine, sample_product, advertiser_buyer_context):
+    def test_pricing_decision_rationale(
+        self, pricing_engine, sample_product, advertiser_buyer_context
+    ):
         """Test PricingDecision includes readable rationale."""
         result = pricing_engine.calculate_price(
             product_id=sample_product.product_id,

@@ -7,16 +7,16 @@ The Publisher Crew coordinates all inventory specialists and functional
 agents under the Inventory Manager's strategic direction.
 """
 
-from crewai import Crew, Task, Process
+from crewai import Crew, Process, Task
 
 from ..agents.level1 import create_inventory_manager
 from ..agents.level2 import (
-    create_display_inventory_agent,
-    create_video_inventory_agent,
     create_ctv_inventory_agent,
+    create_display_inventory_agent,
+    create_linear_tv_inventory_agent,
     create_mobile_app_inventory_agent,
     create_native_inventory_agent,
-    create_linear_tv_inventory_agent,
+    create_video_inventory_agent,
 )
 from ..config import get_settings
 
@@ -124,7 +124,11 @@ Evaluate:
             )
             channel_tasks.append(video_task)
 
-        if inventory_type == "ctv" or "ctv" in str(proposal_data) or "streaming" in str(proposal_data):
+        if (
+            inventory_type == "ctv"
+            or "ctv" in str(proposal_data)
+            or "streaming" in str(proposal_data)
+        ):
             ctv_task = Task(
                 description=f"""Assess this proposal from a CTV/streaming perspective:
 

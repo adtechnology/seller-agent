@@ -3,11 +3,11 @@
 
 """Unit tests for Ad Seller System storage backends."""
 
-import pytest
-import tempfile
 import os
+import tempfile
 
-from ad_seller.storage.base import StorageBackend
+import pytest
+
 from ad_seller.storage.sqlite_backend import SQLiteBackend
 
 

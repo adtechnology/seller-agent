@@ -10,6 +10,7 @@ from ad_seller.storage.base import StorageBackend
 
 try:
     import redis.asyncio as redis
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
@@ -35,9 +36,7 @@ class RedisBackend(StorageBackend):
             key_prefix: Prefix for all keys to namespace the data
         """
         if not REDIS_AVAILABLE:
-            raise ImportError(
-                "Redis package not installed. Install with: pip install redis"
-            )
+            raise ImportError("Redis package not installed. Install with: pip install redis")
 
         self.redis_url = redis_url
         self.key_prefix = key_prefix
@@ -50,7 +49,7 @@ class RedisBackend(StorageBackend):
     def _unprefixed_key(self, key: str) -> str:
         """Remove prefix from key."""
         if key.startswith(self.key_prefix):
-            return key[len(self.key_prefix):]
+            return key[len(self.key_prefix) :]
         return key
 
     async def connect(self) -> None:
@@ -129,10 +128,7 @@ class RedisBackend(StorageBackend):
             raise RuntimeError("Storage not connected. Call connect() first.")
 
         json_message = json.dumps(message)
-        return await self._client.publish(
-            f"{self.key_prefix}channel:{channel}",
-            json_message
-        )
+        return await self._client.publish(f"{self.key_prefix}channel:{channel}", json_message)
 
     async def incr(self, key: str) -> int:
         """Increment a counter. Returns new value."""

@@ -49,8 +49,9 @@ class ListPrivateAuctionsTool(BaseTool):
             )
 
         try:
-            from ...clients import GAMRestClient
             import asyncio
+
+            from ...clients import GAMRestClient
 
             async def fetch_auctions():
                 async with GAMRestClient(
@@ -85,9 +86,7 @@ class ListPrivateAuctionsTool(BaseTool):
                 if auction.description:
                     lines.append(f"  Description: {auction.description}")
 
-            lines.append(
-                "\nTo create a deal, use create_private_auction_deal with the auction ID."
-            )
+            lines.append("\nTo create a deal, use create_private_auction_deal with the auction ID.")
 
             return "\n".join(lines)
 

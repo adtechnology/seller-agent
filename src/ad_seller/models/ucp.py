@@ -51,9 +51,7 @@ class UCPModelDescriptor(BaseModel):
 
     id: str = Field(..., description="Model identifier (e.g., 'ucp-embedding-v1')")
     version: str = Field(..., description="Model version (e.g., '1.0.0')")
-    dimension: int = Field(
-        ..., ge=256, le=1024, description="Embedding dimension (256-1024)"
-    )
+    dimension: int = Field(..., ge=256, le=1024, description="Embedding dimension (256-1024)")
     metric: SimilarityMetric = Field(
         default=SimilarityMetric.COSINE,
         description="Recommended similarity metric",
@@ -70,19 +68,13 @@ class UCPContextDescriptor(BaseModel):
     """Contextual information about the embedding source."""
 
     url: Optional[str] = Field(default=None, description="Page URL if applicable")
-    page_title: Optional[str] = Field(
-        default=None, alias="pageTitle", description="Page title"
-    )
-    keywords: list[str] = Field(
-        default_factory=list, description="Content keywords"
-    )
+    page_title: Optional[str] = Field(default=None, alias="pageTitle", description="Page title")
+    keywords: list[str] = Field(default_factory=list, description="Content keywords")
     language: str = Field(default="en", description="Content language (ISO 639-1)")
     device: Optional[str] = Field(
         default=None, description="Device type: desktop, mobile, ctv, tablet"
     )
-    geography: Optional[str] = Field(
-        default=None, description="Geography (ISO 3166-1 alpha-2)"
-    )
+    geography: Optional[str] = Field(default=None, description="Geography (ISO 3166-1 alpha-2)")
     content_categories: list[str] = Field(
         default_factory=list,
         alias="contentCategories",
@@ -136,24 +128,16 @@ class UCPEmbedding(BaseModel):
     embedding_type: EmbeddingType = Field(
         ..., alias="embeddingType", description="Type of embedding"
     )
-    signal_type: SignalType = Field(
-        ..., alias="signalType", description="UCP signal type"
-    )
+    signal_type: SignalType = Field(..., alias="signalType", description="UCP signal type")
     vector: list[float] = Field(
         ..., min_length=256, max_length=1024, description="Embedding vector"
     )
-    dimension: int = Field(
-        ..., ge=256, le=1024, description="Vector dimension"
-    )
+    dimension: int = Field(..., ge=256, le=1024, description="Vector dimension")
     model_descriptor: UCPModelDescriptor = Field(
         ..., alias="modelDescriptor", description="Model that generated this embedding"
     )
-    context: Optional[UCPContextDescriptor] = Field(
-        default=None, description="Contextual metadata"
-    )
-    consent: UCPConsent = Field(
-        ..., description="Consent information (required)"
-    )
+    context: Optional[UCPContextDescriptor] = Field(default=None, description="Contextual metadata")
+    consent: UCPConsent = Field(..., description="Consent information (required)")
     timestamp: datetime = Field(
         default_factory=datetime.utcnow,
         description="When the embedding was generated",
@@ -171,7 +155,9 @@ class UCPEmbedding(BaseModel):
         """Check if the embedding has expired."""
         from datetime import timezone
 
-        age = (datetime.now(timezone.utc) - self.timestamp.replace(tzinfo=timezone.utc)).total_seconds()
+        age = (
+            datetime.now(timezone.utc) - self.timestamp.replace(tzinfo=timezone.utc)
+        ).total_seconds()
         return age > self.ttl_seconds
 
 
@@ -186,9 +172,7 @@ class AudienceCapability(BaseModel):
     )
     name: str = Field(..., description="Human-readable capability name")
     description: Optional[str] = Field(default=None, description="Detailed description")
-    signal_type: SignalType = Field(
-        ..., alias="signalType", description="Type of signal provided"
-    )
+    signal_type: SignalType = Field(..., alias="signalType", description="Type of signal provided")
     coverage_percentage: float = Field(
         default=0.0,
         alias="coveragePercentage",
@@ -390,8 +374,6 @@ class CoverageEstimate(BaseModel):
         alias="limitingFactors",
         description="Factors limiting coverage",
     )
-    channel: Optional[str] = Field(
-        default=None, description="Channel if channel-specific"
-    )
+    channel: Optional[str] = Field(default=None, description="Channel if channel-specific")
 
     model_config = {"populate_by_name": True}

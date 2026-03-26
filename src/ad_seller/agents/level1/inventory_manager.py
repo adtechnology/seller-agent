@@ -8,7 +8,7 @@ It manages overall inventory strategy with a yield optimization objective
 function, evaluates proposals, and coordinates specialist agents.
 """
 
-from crewai import Agent, LLM
+from crewai import LLM, Agent
 
 from ...config import get_settings
 

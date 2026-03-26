@@ -13,7 +13,6 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # =============================================================================
 # Enums
 # =============================================================================
@@ -210,15 +209,11 @@ class GAMTargeting(BaseModel):
         default=None, alias="inventoryTargeting"
     )
     geo_targeting: Optional[dict[str, Any]] = Field(default=None, alias="geoTargeting")
-    custom_targeting: Optional[GAMCustomCriteriaSet] = Field(
-        default=None, alias="customTargeting"
-    )
+    custom_targeting: Optional[GAMCustomCriteriaSet] = Field(default=None, alias="customTargeting")
     user_domain_targeting: Optional[dict[str, Any]] = Field(
         default=None, alias="userDomainTargeting"
     )
-    day_part_targeting: Optional[dict[str, Any]] = Field(
-        default=None, alias="dayPartTargeting"
-    )
+    day_part_targeting: Optional[dict[str, Any]] = Field(default=None, alias="dayPartTargeting")
     technology_targeting: Optional[dict[str, Any]] = Field(
         default=None, alias="technologyTargeting"
     )
@@ -256,9 +251,7 @@ class GAMDateTime(BaseModel):
     time_zone_id: str = Field(default="America/New_York", alias="timeZoneId")
 
     @classmethod
-    def from_datetime(
-        cls, dt: datetime, time_zone_id: str = "America/New_York"
-    ) -> "GAMDateTime":
+    def from_datetime(cls, dt: datetime, time_zone_id: str = "America/New_York") -> "GAMDateTime":
         """Create from Python datetime."""
         return cls(
             date={"year": dt.year, "month": dt.month, "day": dt.day},
@@ -411,9 +404,7 @@ class GAMAudienceSegment(BaseModel):
     description: Optional[str] = None
     size: Optional[int] = None  # Number of users in segment
     data_provider_name: Optional[str] = Field(default=None, alias="dataProviderName")
-    membership_expiration_days: int = Field(
-        default=30, alias="membershipExpirationDays"
-    )
+    membership_expiration_days: int = Field(default=30, alias="membershipExpirationDays")
 
 
 class AudienceSegmentMapping(BaseModel):
@@ -433,7 +424,9 @@ class AudienceSegmentMapping(BaseModel):
     # GAM identifiers (always present)
     gam_segment_id: int = Field(alias="gamSegmentId")
     gam_segment_name: str = Field(alias="gamSegmentName")
-    segment_type: str = Field(alias="segmentType")  # "rule-based" | "non-rule-based" | "third-party"
+    segment_type: str = Field(
+        alias="segmentType"
+    )  # "rule-based" | "non-rule-based" | "third-party"
 
     # UCP mapping (optional - for embedding-based audiences)
     ucp_audience_id: Optional[str] = Field(default=None, alias="ucpAudienceId")
@@ -441,9 +434,7 @@ class AudienceSegmentMapping(BaseModel):
     # IAB Audience Taxonomy 1.1 mapping (optional - for standard categories)
     # Format: "1-1" = Demographics > Age, "2-1" = Interest > Arts & Entertainment, etc.
     # Reference: https://github.com/InteractiveAdvertisingBureau/Taxonomies
-    iab_audience_taxonomy_id: Optional[str] = Field(
-        default=None, alias="iabAudienceTaxonomyId"
-    )
+    iab_audience_taxonomy_id: Optional[str] = Field(default=None, alias="iabAudienceTaxonomyId")
 
     # Third-party data provider info (optional)
     data_provider: Optional[str] = Field(default=None, alias="dataProvider")
@@ -467,9 +458,7 @@ class GAMBookingResult(BaseModel):
     order_id: Optional[str] = Field(default=None, alias="orderId")
     line_item_id: Optional[str] = Field(default=None, alias="lineItemId")
     line_item_ids: list[str] = Field(default_factory=list, alias="lineItemIds")
-    private_auction_deal_id: Optional[str] = Field(
-        default=None, alias="privateAuctionDealId"
-    )
+    private_auction_deal_id: Optional[str] = Field(default=None, alias="privateAuctionDealId")
     deal_id: Optional[str] = Field(default=None, alias="dealId")  # OpenDirect deal reference
     status: Optional[str] = None  # "BOOKED", "FAILED", etc.
     message: Optional[str] = None

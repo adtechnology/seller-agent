@@ -215,7 +215,9 @@ class MediaKitService:
             package.package_id,
             package.model_dump(mode="json"),
         )
-        logger.info("Dynamic package assembled: %s from %d products", package.package_id, len(products))
+        logger.info(
+            "Dynamic package assembled: %s from %d products", package.package_id, len(products)
+        )
         return package
 
     # =========================================================================
@@ -322,9 +324,7 @@ class MediaKitService:
             exact_price = price_display["price"]
         else:
             # Fallback: apply tier discount manually
-            exact_price = round(
-                package.base_price * (1 - tier_config.tier_discount), 2
-            )
+            exact_price = round(package.base_price * (1 - tier_config.tier_discount), 2)
 
         if price_display["type"] == "range":
             price_range = price_display["display"]
@@ -358,13 +358,15 @@ class MediaKitService:
         score = 0.0
 
         # Searchable text fields
-        searchable = " ".join([
-            package.name.lower(),
-            (package.description or "").lower(),
-            " ".join(t.lower() for t in package.tags),
-            " ".join(c.lower() for c in package.cat),
-            " ".join(package.ad_formats),
-        ])
+        searchable = " ".join(
+            [
+                package.name.lower(),
+                (package.description or "").lower(),
+                " ".join(t.lower() for t in package.tags),
+                " ".join(c.lower() for c in package.cat),
+                " ".join(package.ad_formats),
+            ]
+        )
 
         for token in tokens:
             if token in searchable:
@@ -393,11 +395,11 @@ class MediaKitService:
     def _classify_device_types(inventory_type: str) -> list[int]:
         """Derive AdCOM DeviceType ints from a product's inventory_type string."""
         mapping: dict[str, list[int]] = {
-            "display": [2, 4, 5],       # PC, Phone, Tablet
-            "video": [2, 4, 5],         # PC, Phone, Tablet
-            "ctv": [3, 7],              # CTV, STB
-            "mobile_app": [4, 5],       # Phone, Tablet
-            "native": [2, 4, 5],        # PC, Phone, Tablet
-            "audio": [2, 4, 5, 6],      # PC, Phone, Tablet, Connected Device
+            "display": [2, 4, 5],  # PC, Phone, Tablet
+            "video": [2, 4, 5],  # PC, Phone, Tablet
+            "ctv": [3, 7],  # CTV, STB
+            "mobile_app": [4, 5],  # Phone, Tablet
+            "native": [2, 4, 5],  # PC, Phone, Tablet
+            "audio": [2, 4, 5, 6],  # PC, Phone, Tablet, Connected Device
         }
         return mapping.get(inventory_type, [2])

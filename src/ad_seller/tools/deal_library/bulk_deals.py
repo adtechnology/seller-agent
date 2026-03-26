@@ -4,7 +4,7 @@
 """Bulk Deal Operations Tool — batch create/update/cancel deals."""
 
 import json
-from typing import Any, Type
+from typing import Type
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field

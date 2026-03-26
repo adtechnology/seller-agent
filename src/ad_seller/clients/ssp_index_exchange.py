@@ -23,7 +23,6 @@ request/response schemas and auth mechanism.
 import logging
 from typing import Any, Optional
 
-from .ssp_rest_client import RESTSSPClient
 from .ssp_base import (
     SSPDeal,
     SSPDealCreateRequest,
@@ -32,6 +31,7 @@ from .ssp_base import (
     SSPTroubleshootResult,
     SSPType,
 )
+from .ssp_rest_client import RESTSSPClient
 
 logger = logging.getLogger(__name__)
 

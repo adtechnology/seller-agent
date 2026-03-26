@@ -11,42 +11,74 @@ from pydantic import BaseModel, Field
 from ...config import get_settings
 from ...models.gam import AudienceSegmentMapping
 
-
 # IAB Audience Taxonomy 1.1 mappings
 # Source: https://github.com/InteractiveAdvertisingBureau/Taxonomies/blob/main/Audience%20Taxonomies/Audience%20Taxonomy%201.1.tsv
 IAB_AUDIENCE_TAXONOMY_MAPPINGS = {
     # Demographics (Category 1)
     "1-1": {"name": "Age", "subcategories": ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]},
     "1-2": {"name": "Gender", "subcategories": ["Male", "Female"]},
-    "1-3": {"name": "Household Income", "subcategories": ["$0-50k", "$50-100k", "$100-150k", "$150k+"]},
-    "1-4": {"name": "Education", "subcategories": ["High School", "Some College", "College Graduate", "Post-Graduate"]},
-
+    "1-3": {
+        "name": "Household Income",
+        "subcategories": ["$0-50k", "$50-100k", "$100-150k", "$150k+"],
+    },
+    "1-4": {
+        "name": "Education",
+        "subcategories": ["High School", "Some College", "College Graduate", "Post-Graduate"],
+    },
     # Interest (Category 2)
     "2-1": {"name": "Arts & Entertainment", "subcategories": ["Movies", "Music", "TV", "Gaming"]},
-    "2-2": {"name": "Automotive", "subcategories": ["Auto Enthusiasts", "Luxury Auto", "Economy Auto"]},
-    "2-3": {"name": "Business", "subcategories": ["Business Professionals", "Entrepreneurs", "Investors"]},
+    "2-2": {
+        "name": "Automotive",
+        "subcategories": ["Auto Enthusiasts", "Luxury Auto", "Economy Auto"],
+    },
+    "2-3": {
+        "name": "Business",
+        "subcategories": ["Business Professionals", "Entrepreneurs", "Investors"],
+    },
     "2-4": {"name": "Careers", "subcategories": ["Job Seekers", "Career Changers"]},
     "2-5": {"name": "Family & Parenting", "subcategories": ["Parents", "Expecting Parents"]},
-    "2-6": {"name": "Food & Drink", "subcategories": ["Foodies", "Cooking Enthusiasts", "Restaurant Goers"]},
-    "2-7": {"name": "Health & Fitness", "subcategories": ["Fitness Enthusiasts", "Health Conscious"]},
+    "2-6": {
+        "name": "Food & Drink",
+        "subcategories": ["Foodies", "Cooking Enthusiasts", "Restaurant Goers"],
+    },
+    "2-7": {
+        "name": "Health & Fitness",
+        "subcategories": ["Fitness Enthusiasts", "Health Conscious"],
+    },
     "2-8": {"name": "Hobbies & Interests", "subcategories": ["DIY", "Gardening", "Crafts"]},
     "2-9": {"name": "Home & Garden", "subcategories": ["Home Improvement", "Interior Design"]},
     "2-10": {"name": "News & Politics", "subcategories": ["News Readers", "Political Junkies"]},
-    "2-11": {"name": "Personal Finance", "subcategories": ["Investors", "Savers", "Credit Seekers"]},
+    "2-11": {
+        "name": "Personal Finance",
+        "subcategories": ["Investors", "Savers", "Credit Seekers"],
+    },
     "2-12": {"name": "Pets", "subcategories": ["Dog Owners", "Cat Owners"]},
-    "2-13": {"name": "Sports", "subcategories": ["Sports Fans", "Fantasy Sports", "Sports Bettors"]},
+    "2-13": {
+        "name": "Sports",
+        "subcategories": ["Sports Fans", "Fantasy Sports", "Sports Bettors"],
+    },
     "2-14": {"name": "Style & Fashion", "subcategories": ["Fashion Forward", "Luxury Shoppers"]},
-    "2-15": {"name": "Technology", "subcategories": ["Tech Enthusiasts", "Early Adopters", "Gadget Lovers"]},
-    "2-16": {"name": "Travel", "subcategories": ["Frequent Travelers", "Business Travelers", "Leisure Travelers"]},
-
+    "2-15": {
+        "name": "Technology",
+        "subcategories": ["Tech Enthusiasts", "Early Adopters", "Gadget Lovers"],
+    },
+    "2-16": {
+        "name": "Travel",
+        "subcategories": ["Frequent Travelers", "Business Travelers", "Leisure Travelers"],
+    },
     # Purchase Intent (Category 3)
     "3-1": {"name": "Auto Intenders", "subcategories": ["New Car", "Used Car", "SUV", "Truck"]},
     "3-2": {"name": "CPG Intenders", "subcategories": ["Grocery", "Health & Beauty", "Household"]},
     "3-3": {"name": "Financial Services", "subcategories": ["Credit Card", "Insurance", "Banking"]},
     "3-4": {"name": "Retail Intenders", "subcategories": ["Apparel", "Electronics", "Home Goods"]},
-    "3-5": {"name": "Telecom Intenders", "subcategories": ["Mobile", "Internet", "Cable/Satellite"]},
-    "3-6": {"name": "Travel Intenders", "subcategories": ["Flights", "Hotels", "Vacation Packages"]},
-
+    "3-5": {
+        "name": "Telecom Intenders",
+        "subcategories": ["Mobile", "Internet", "Cable/Satellite"],
+    },
+    "3-6": {
+        "name": "Travel Intenders",
+        "subcategories": ["Flights", "Hotels", "Vacation Packages"],
+    },
     # Life Stage (Category 4)
     "4-1": {"name": "New Parents", "subcategories": ["New Baby", "Toddlers"]},
     "4-2": {"name": "Empty Nesters", "subcategories": []},
@@ -54,17 +86,27 @@ IAB_AUDIENCE_TAXONOMY_MAPPINGS = {
     "4-4": {"name": "Newlyweds", "subcategories": []},
     "4-5": {"name": "College Students", "subcategories": []},
     "4-6": {"name": "Retirees", "subcategories": []},
-
     # Seasonal & Event (Category 5)
-    "5-1": {"name": "Holiday Shoppers", "subcategories": ["Christmas", "Black Friday", "Valentine's Day"]},
+    "5-1": {
+        "name": "Holiday Shoppers",
+        "subcategories": ["Christmas", "Black Friday", "Valentine's Day"],
+    },
     "5-2": {"name": "Back to School", "subcategories": []},
     "5-3": {"name": "Summer Activities", "subcategories": []},
     "5-4": {"name": "Tax Season", "subcategories": []},
-
     # Behaviors (Category 6)
-    "6-1": {"name": "Device Usage", "subcategories": ["Mobile Heavy", "Desktop Heavy", "Tablet Users"]},
-    "6-2": {"name": "Purchase Behavior", "subcategories": ["Frequent Buyers", "Deal Seekers", "Premium Buyers"]},
-    "6-3": {"name": "Media Consumption", "subcategories": ["Streaming", "Social Media", "Podcast Listeners"]},
+    "6-1": {
+        "name": "Device Usage",
+        "subcategories": ["Mobile Heavy", "Desktop Heavy", "Tablet Users"],
+    },
+    "6-2": {
+        "name": "Purchase Behavior",
+        "subcategories": ["Frequent Buyers", "Deal Seekers", "Premium Buyers"],
+    },
+    "6-3": {
+        "name": "Media Consumption",
+        "subcategories": ["Streaming", "Social Media", "Podcast Listeners"],
+    },
 }
 
 
@@ -127,8 +169,9 @@ class SyncGAMAudiencesTool(BaseTool):
             )
 
         try:
-            from ...clients import GAMSoapClient
             from datetime import datetime
+
+            from ...clients import GAMSoapClient
 
             client = GAMSoapClient(
                 network_code=settings.gam_network_code,
@@ -141,10 +184,7 @@ class SyncGAMAudiencesTool(BaseTool):
                 segments = client.list_audience_segments(limit=500)
 
                 if not include_third_party:
-                    segments = [
-                        s for s in segments
-                        if s.type.value != "THIRD_PARTY"
-                    ]
+                    segments = [s for s in segments if s.type.value != "THIRD_PARTY"]
 
                 # Build mappings
                 mappings = []
@@ -175,10 +215,14 @@ class SyncGAMAudiencesTool(BaseTool):
                     pass  # Implementation would create via SOAP API
 
                 # Format results
-                lines = [f"GAM Audience Sync Complete:\n"]
+                lines = ["GAM Audience Sync Complete:\n"]
                 lines.append(f"- Total segments found: {len(segments)}")
-                lines.append(f"- First-party segments: {sum(1 for s in segments if 'FIRST' in s.type.value)}")
-                lines.append(f"- Third-party segments: {sum(1 for s in segments if 'THIRD' in s.type.value)}")
+                lines.append(
+                    f"- First-party segments: {sum(1 for s in segments if 'FIRST' in s.type.value)}"
+                )
+                lines.append(
+                    f"- Third-party segments: {sum(1 for s in segments if 'THIRD' in s.type.value)}"
+                )
                 lines.append(f"- Mapped to IAB Taxonomy: {iab_matches}")
 
                 if update_mappings:
@@ -190,7 +234,11 @@ class SyncGAMAudiencesTool(BaseTool):
                 # Show sample mappings
                 lines.append("\nSample audience mappings:")
                 for mapping in mappings[:5]:
-                    iab_str = f" (IAB: {mapping.iab_audience_taxonomy_id})" if mapping.iab_audience_taxonomy_id else ""
+                    iab_str = (
+                        f" (IAB: {mapping.iab_audience_taxonomy_id})"
+                        if mapping.iab_audience_taxonomy_id
+                        else ""
+                    )
                     size_str = f"{mapping.estimated_size:,}" if mapping.estimated_size else "?"
                     lines.append(
                         f"  - {mapping.gam_segment_name}{iab_str}\n"

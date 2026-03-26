@@ -15,8 +15,12 @@ class CreateDealFromTemplateInput(BaseModel):
 
     deal_type: str = Field(description="Deal type: PG, PD, or PA")
     product_id: str = Field(description="Product ID from the seller catalog")
-    impressions: Optional[int] = Field(default=None, description="Impression count (required for PG)")
-    max_cpm: Optional[float] = Field(default=None, description="Buyer's maximum CPM — rejects if below seller floor")
+    impressions: Optional[int] = Field(
+        default=None, description="Impression count (required for PG)"
+    )
+    max_cpm: Optional[float] = Field(
+        default=None, description="Buyer's maximum CPM — rejects if below seller floor"
+    )
     flight_start: Optional[str] = Field(default=None, description="Flight start date (YYYY-MM-DD)")
     flight_end: Optional[str] = Field(default=None, description="Flight end date (YYYY-MM-DD)")
     base_url: str = Field(default="http://localhost:8000", description="Base URL of the seller API")

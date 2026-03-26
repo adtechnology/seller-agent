@@ -50,7 +50,10 @@ app = FastAPI(
         {"name": "Orders", "description": "Order state machine and lifecycle management"},
         {"name": "Change Requests", "description": "Post-deal modification requests"},
         {"name": "Audit", "description": "Order audit logs and operational reports"},
-        {"name": "Supply Chain", "description": "Supply chain transparency (sellers.json-like self-description)"},
+        {
+            "name": "Supply Chain",
+            "description": "Supply chain transparency (sellers.json-like self-description)",
+        },
         {"name": "Deal Performance", "description": "Deal delivery and performance metrics"},
         {"name": "Bulk Operations", "description": "Batch deal create/update/cancel"},
     ],
@@ -65,11 +68,13 @@ app = FastAPI(
 @app.on_event("startup")
 async def _startup():
     from ...services.inventory_sync_scheduler import start_sync_scheduler
+
     start_sync_scheduler()
 
     # Mount MCP SSE server for Claude Desktop / ChatGPT
     try:
         from ..mcp_server import mcp as mcp_server
+
         mcp_sse_app = mcp_server.sse_app()
         app.mount("/mcp", mcp_sse_app)
         logger.info("MCP SSE server mounted at /mcp/sse")
@@ -80,6 +85,7 @@ async def _startup():
 @app.on_event("shutdown")
 async def _shutdown():
     from ...services.inventory_sync_scheduler import stop_sync_scheduler
+
     stop_sync_scheduler()
 
 
@@ -253,6 +259,7 @@ async def _get_optional_api_key_record(
     Accepts ``Authorization: Bearer <key>`` or ``X-Api-Key: <key>``.
     """
     from ...auth.dependencies import get_api_key_record
+
     return await get_api_key_record(authorization, x_api_key)
 
 
@@ -273,7 +280,7 @@ def _build_buyer_context(
 
     The max_access_tier (from agent registry) is merged in when provided.
     """
-    from ...models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
+    from ...models.buyer_identity import AccessTier, BuyerContext, BuyerIdentity
 
     if api_key_record is not None:
         return BuyerContext(
@@ -307,8 +314,8 @@ def _build_buyer_context(
 
 async def _get_registry_service():
     """Create an AgentRegistryService with storage + AAMP client."""
-    from ...registry import AgentRegistryService
     from ...clients.agent_registry_client import AAMPRegistryClient
+    from ...registry import AgentRegistryService
     from ...storage.factory import get_storage
 
     storage = await get_storage()
@@ -331,6 +338,7 @@ async def _get_registry_service():
 def _get_api_settings():
     """Get settings for API use."""
     from ...config import get_settings
+
     return get_settings()
 
 
@@ -388,15 +396,17 @@ async def list_products():
 
     products = []
     for product in flow.state.products.values():
-        products.append({
-            "product_id": product.product_id,
-            "name": product.name,
-            "description": product.description,
-            "inventory_type": product.inventory_type,
-            "base_cpm": product.base_cpm,
-            "floor_cpm": product.floor_cpm,
-            "deal_types": [dt.value for dt in product.supported_deal_types],
-        })
+        products.append(
+            {
+                "product_id": product.product_id,
+                "name": product.name,
+                "description": product.description,
+                "inventory_type": product.inventory_type,
+                "base_cpm": product.base_cpm,
+                "floor_cpm": product.floor_cpm,
+                "deal_types": [dt.value for dt in product.supported_deal_types],
+            }
+        )
 
     return {"products": products}
 
@@ -431,8 +441,8 @@ async def get_pricing(
 ):
     """Get pricing for a product based on buyer context."""
     from ...engines.pricing_rules_engine import PricingRulesEngine
-    from ...models.pricing_tiers import TieredPricingConfig
     from ...flows import ProductSetupFlow
+    from ...models.pricing_tiers import TieredPricingConfig
 
     # Get products
     flow = ProductSetupFlow()
@@ -482,8 +492,9 @@ async def submit_proposal(
     api_key_record=Depends(_get_optional_api_key_record),
 ):
     """Submit a proposal for review."""
-    from ...flows import ProposalHandlingFlow, ProductSetupFlow
     import uuid
+
+    from ...flows import ProductSetupFlow, ProposalHandlingFlow
 
     # Get products
     setup_flow = ProductSetupFlow()
@@ -526,6 +537,7 @@ async def submit_proposal(
     if result.get("pending_approval"):
         from ...events.approval import ApprovalGate
         from ...storage.factory import get_storage
+
         storage = await get_storage()
         gate = ApprovalGate(storage)
         approval_req = await gate.request_approval(
@@ -670,6 +682,7 @@ async def list_events(
 ):
     """List events, optionally filtered by flow_id, event_type, or session_id."""
     from ...events.bus import get_event_bus
+
     bus = await get_event_bus()
     events = await bus.list_events(
         flow_id=flow_id, event_type=event_type, session_id=session_id, limit=limit
@@ -681,6 +694,7 @@ async def list_events(
 async def get_event(event_id: str):
     """Get a specific event by ID."""
     from ...events.bus import get_event_bus
+
     bus = await get_event_bus()
     event = await bus.get_event(event_id)
     if not event:
@@ -698,6 +712,7 @@ async def list_pending_approvals():
     """List all pending approval requests."""
     from ...events.approval import ApprovalGate
     from ...storage.factory import get_storage
+
     storage = await get_storage()
     gate = ApprovalGate(storage)
     pending = await gate.list_pending()
@@ -709,6 +724,7 @@ async def get_approval(approval_id: str):
     """Get a specific approval request and its response (if any)."""
     from ...events.approval import ApprovalGate
     from ...storage.factory import get_storage
+
     storage = await get_storage()
     gate = ApprovalGate(storage)
     request = await gate.get_request(approval_id)
@@ -726,6 +742,7 @@ async def decide_approval(approval_id: str, body: ApprovalDecisionRequest):
     """Submit a human decision for a pending approval."""
     from ...events.approval import ApprovalGate
     from ...storage.factory import get_storage
+
     storage = await get_storage()
     gate = ApprovalGate(storage)
     try:
@@ -780,11 +797,12 @@ async def resume_flow(approval_id: str):
 
 async def _resume_proposal_flow(request, response):
     """Resume a proposal handling flow after approval decision."""
+    from datetime import datetime
+
     from ...events.helpers import emit_event
     from ...events.models import EventType
     from ...flows.proposal_handling_flow import ProposalHandlingFlow, ProposalState
     from ...models.flow_state import ExecutionStatus
-    from datetime import datetime
 
     snapshot = request.flow_state_snapshot
 
@@ -854,11 +872,9 @@ async def create_session(
 
     # API key identity overrides body params; is_authenticated derived from key
     context = _build_buyer_context(
-        buyer_tier="advertiser" if request.advertiser_id else (
-            "agency" if request.agency_id else (
-                "seat" if request.seat_id else "public"
-            )
-        ),
+        buyer_tier="advertiser"
+        if request.advertiser_id
+        else ("agency" if request.agency_id else ("seat" if request.seat_id else "public")),
         agency_id=request.agency_id,
         advertiser_id=request.advertiser_id,
         seat_id=request.seat_id,
@@ -905,15 +921,17 @@ async def list_sessions(
         # Apply status filter
         if status and s.status.value != status:
             continue
-        results.append({
-            "session_id": s.session_id,
-            "status": s.status.value,
-            "buyer_pricing_key": s.get_buyer_pricing_key(),
-            "message_count": len(s.messages),
-            "negotiation_stage": s.negotiation.stage,
-            "created_at": s.created_at.isoformat(),
-            "updated_at": s.updated_at.isoformat(),
-        })
+        results.append(
+            {
+                "session_id": s.session_id,
+                "status": s.status.value,
+                "buyer_pricing_key": s.get_buyer_pricing_key(),
+                "message_count": len(s.messages),
+                "negotiation_stage": s.negotiation.stage,
+                "created_at": s.created_at.isoformat(),
+                "updated_at": s.updated_at.isoformat(),
+            }
+        )
 
     return {"sessions": results}
 
@@ -1065,9 +1083,7 @@ async def counter_proposal(
         )
 
     # Evaluate buyer's offer
-    round_result = neg_engine.evaluate_buyer_offer(
-        history, request.buyer_price, buyer_context
-    )
+    round_result = neg_engine.evaluate_buyer_offer(history, request.buyer_price, buyer_context)
     history = neg_engine.record_round(history, round_result)
 
     # Persist
@@ -1296,10 +1312,11 @@ async def get_package(
 async def create_package(request: PackageCreateRequest):
     """Create a curated package (Layer 2)."""
     import uuid as _uuid
-    from ...models.media_kit import Package, PackageLayer, PackagePlacement, PackageStatus
-    from ...storage.factory import get_storage
+
     from ...events.helpers import emit_event
     from ...events.models import EventType
+    from ...models.media_kit import Package, PackageLayer, PackagePlacement, PackageStatus
+    from ...storage.factory import get_storage
 
     storage = await get_storage()
 
@@ -1309,13 +1326,16 @@ async def create_package(request: PackageCreateRequest):
         prod_data = await storage.get_product(pid)
         if prod_data:
             from ...models.flow_state import ProductDefinition
+
             prod = ProductDefinition(**prod_data)
-            placements.append(PackagePlacement(
-                product_id=prod.product_id,
-                product_name=prod.name,
-                ad_formats=request.ad_formats or _default_ad_formats(prod.inventory_type),
-                device_types=request.device_types or _default_device_types(prod.inventory_type),
-            ))
+            placements.append(
+                PackagePlacement(
+                    product_id=prod.product_id,
+                    product_name=prod.name,
+                    ad_formats=request.ad_formats or _default_ad_formats(prod.inventory_type),
+                    device_types=request.device_types or _default_device_types(prod.inventory_type),
+                )
+            )
 
     package = Package(
         package_id=f"pkg-{_uuid.uuid4().hex[:8]}",
@@ -1390,9 +1410,9 @@ async def assemble_package(request: DynamicPackageRequest):
 @app.post("/packages/sync", tags=["Packages"])
 async def sync_packages():
     """Trigger ad server inventory sync (Layer 1)."""
-    from ...flows import ProductSetupFlow
     from ...events.helpers import emit_event
     from ...events.models import EventType
+    from ...flows import ProductSetupFlow
 
     flow = ProductSetupFlow()
     await flow.kickoff()
@@ -1543,14 +1563,14 @@ async def agent_card():
     seller's capabilities, supported protocols, and inventory types.
     Buyer agents and registries fetch this to discover the seller.
     """
+    from ...flows import ProductSetupFlow
     from ...models.agent_registry import (
-        AgentCard,
         AgentAuthentication,
         AgentCapabilities,
+        AgentCard,
         AgentProvider,
         AgentSkill,
     )
-    from ...flows import ProductSetupFlow
 
     settings = _get_api_settings()
 
@@ -1631,11 +1651,13 @@ async def agent_card():
 
 class DiscoverAgentRequest(BaseModel):
     """Request to discover an agent by URL."""
+
     agent_url: str
 
 
 class UpdateTrustRequest(BaseModel):
     """Request to update an agent's trust status."""
+
     trust_status: str  # TrustStatus value
     notes: Optional[str] = None
 
@@ -1710,7 +1732,7 @@ async def update_agent_trust(agent_id: str, request: UpdateTrustRequest):
     - preferred → ADVERTISER + custom pricing rules
     - blocked → 403 rejected, zero data access
     """
-    from ...models.agent_registry import TrustStatus, TRUST_TO_TIER_MAP
+    from ...models.agent_registry import TRUST_TO_TIER_MAP, TrustStatus
 
     try:
         ts = TrustStatus(request.trust_status)
@@ -1832,10 +1854,13 @@ async def create_quote(
     buyer_ident = request.buyer_identity
     context = _build_buyer_context(
         buyer_tier=(
-            "advertiser" if (buyer_ident and buyer_ident.advertiser_id) else
-            "agency" if (buyer_ident and buyer_ident.agency_id) else
-            "seat" if (buyer_ident and buyer_ident.seat_id) else
-            "public"
+            "advertiser"
+            if (buyer_ident and buyer_ident.advertiser_id)
+            else "agency"
+            if (buyer_ident and buyer_ident.agency_id)
+            else "seat"
+            if (buyer_ident and buyer_ident.seat_id)
+            else "public"
         ),
         agency_id=buyer_ident.agency_id if buyer_ident else None,
         advertiser_id=buyer_ident.advertiser_id if buyer_ident else None,
@@ -1943,7 +1968,10 @@ async def get_quote(quote_id: str):
             await storage.set_quote(quote_id, quote, ttl=3600)  # Keep expired record briefly
             raise HTTPException(
                 status_code=410,
-                detail={"error": "quote_expired", "message": "Quote has expired. Request a new quote."},
+                detail={
+                    "error": "quote_expired",
+                    "message": "Quote has expired. Request a new quote.",
+                },
             )
 
     return quote
@@ -1972,7 +2000,10 @@ async def book_deal(
     if not quote:
         raise HTTPException(
             status_code=404,
-            detail={"error": "quote_not_found", "message": f"Quote '{request.quote_id}' not found."},
+            detail={
+                "error": "quote_not_found",
+                "message": f"Quote '{request.quote_id}' not found.",
+            },
         )
 
     # Lazy expiry check
@@ -1983,7 +2014,10 @@ async def book_deal(
             await storage.set_quote(request.quote_id, quote, ttl=3600)
             raise HTTPException(
                 status_code=410,
-                detail={"error": "quote_expired", "message": "Quote has expired. Request a new quote."},
+                detail={
+                    "error": "quote_expired",
+                    "message": "Quote has expired. Request a new quote.",
+                },
             )
 
     # Validate status — must be "available"
@@ -2075,6 +2109,7 @@ async def get_deal_by_id(deal_id: str):
 
 class CreateOrderRequest(BaseModel):
     """Request to create a new order."""
+
     deal_id: Optional[str] = None
     quote_id: Optional[str] = None
     metadata: Optional[dict] = None
@@ -2082,6 +2117,7 @@ class CreateOrderRequest(BaseModel):
 
 class TransitionOrderRequest(BaseModel):
     """Request to transition an order to a new state."""
+
     to_status: str
     actor: str = "system"
     reason: str = ""
@@ -2094,8 +2130,8 @@ async def create_order(
     _auth: None = Depends(_get_optional_api_key_record),
 ):
     """Create a new order and persist its state machine."""
+    from ...models.order_state_machine import OrderStateMachine
     from ...storage.factory import get_storage
-    from ...models.order_state_machine import OrderStateMachine, OrderStatus
 
     storage = await get_storage()
 
@@ -2256,12 +2292,12 @@ async def transition_order(
     Validates the transition against the state machine rules and
     records the change in the audit log.
     """
-    from ...storage.factory import get_storage
     from ...models.order_state_machine import (
         InvalidTransitionError,
         OrderStateMachine,
         OrderStatus,
     )
+    from ...storage.factory import get_storage
 
     storage = await get_storage()
     order = await storage.get_order(order_id)
@@ -2337,6 +2373,7 @@ class FieldDiffModel(BaseModel):
 
 class CreateChangeRequestModel(BaseModel):
     """Request to create a change request for an order."""
+
     order_id: str
     change_type: str
     diffs: list[FieldDiffModel] = []
@@ -2347,6 +2384,7 @@ class CreateChangeRequestModel(BaseModel):
 
 class ReviewChangeRequestModel(BaseModel):
     """Approve or reject a change request."""
+
     decision: str  # "approve" or "reject"
     decided_by: str = "system"
     reason: str = ""
@@ -2362,7 +2400,6 @@ async def create_change_request(
     Validates the change against the current order state, classifies
     severity, and routes to approval if needed.
     """
-    from ...storage.factory import get_storage
     from ...models.change_request import (
         ChangeRequest,
         ChangeRequestStatus,
@@ -2372,6 +2409,7 @@ async def create_change_request(
         classify_severity,
         validate_change_request,
     )
+    from ...storage.factory import get_storage
 
     storage = await get_storage()
 
@@ -2394,11 +2432,17 @@ async def create_change_request(
     if not order:
         raise HTTPException(
             status_code=404,
-            detail={"error": "order_not_found", "message": f"Order '{request.order_id}' not found."},
+            detail={
+                "error": "order_not_found",
+                "message": f"Order '{request.order_id}' not found.",
+            },
         )
 
     # Build diffs
-    diffs = [FieldDiff(field=d.field, old_value=d.old_value, new_value=d.new_value) for d in request.diffs]
+    diffs = [
+        FieldDiff(field=d.field, old_value=d.old_value, new_value=d.new_value)
+        for d in request.diffs
+    ]
 
     # Classify severity
     severity = classify_severity(change_type, diffs)
@@ -2478,7 +2522,10 @@ async def get_change_request(
     if not cr:
         raise HTTPException(
             status_code=404,
-            detail={"error": "change_request_not_found", "message": f"Change request '{cr_id}' not found."},
+            detail={
+                "error": "change_request_not_found",
+                "message": f"Change request '{cr_id}' not found.",
+            },
         )
     return cr
 
@@ -2490,8 +2537,8 @@ async def review_change_request(
     _auth: None = Depends(_get_optional_api_key_record),
 ):
     """Approve or reject a pending change request."""
-    from ...storage.factory import get_storage
     from ...models.change_request import ChangeRequestStatus
+    from ...storage.factory import get_storage
 
     storage = await get_storage()
     cr = await storage.get_change_request(cr_id)
@@ -2499,7 +2546,10 @@ async def review_change_request(
     if not cr:
         raise HTTPException(
             status_code=404,
-            detail={"error": "change_request_not_found", "message": f"Change request '{cr_id}' not found."},
+            detail={
+                "error": "change_request_not_found",
+                "message": f"Change request '{cr_id}' not found.",
+            },
         )
 
     if cr.get("status") != ChangeRequestStatus.PENDING_APPROVAL.value:
@@ -2514,7 +2564,10 @@ async def review_change_request(
     if request.decision not in ("approve", "reject"):
         raise HTTPException(
             status_code=400,
-            detail={"error": "invalid_decision", "message": "Decision must be 'approve' or 'reject'."},
+            detail={
+                "error": "invalid_decision",
+                "message": "Decision must be 'approve' or 'reject'.",
+            },
         )
 
     now = datetime.utcnow().isoformat() + "Z"
@@ -2542,8 +2595,8 @@ async def apply_change_request(
 
     Updates the order with the proposed values from the change request.
     """
-    from ...storage.factory import get_storage
     from ...models.change_request import ChangeRequestStatus
+    from ...storage.factory import get_storage
 
     storage = await get_storage()
     cr = await storage.get_change_request(cr_id)
@@ -2551,7 +2604,10 @@ async def apply_change_request(
     if not cr:
         raise HTTPException(
             status_code=404,
-            detail={"error": "change_request_not_found", "message": f"Change request '{cr_id}' not found."},
+            detail={
+                "error": "change_request_not_found",
+                "message": f"Change request '{cr_id}' not found.",
+            },
         )
 
     if cr.get("status") != ChangeRequestStatus.APPROVED.value:
@@ -2740,23 +2796,36 @@ async def create_deal_from_template(
     if not api_key_record:
         raise HTTPException(
             status_code=401,
-            detail={"error": "authentication_required", "message": "API key required for deal creation."},
+            detail={
+                "error": "authentication_required",
+                "message": "API key required for deal creation.",
+            },
         )
 
     # Validate deal type
-    deal_type_map = {"PG": DealType.PROGRAMMATIC_GUARANTEED, "PD": DealType.PREFERRED_DEAL, "PA": DealType.PRIVATE_AUCTION}
+    deal_type_map = {
+        "PG": DealType.PROGRAMMATIC_GUARANTEED,
+        "PD": DealType.PREFERRED_DEAL,
+        "PA": DealType.PRIVATE_AUCTION,
+    }
     deal_type_str = request.deal_type.upper()
     if deal_type_str not in deal_type_map:
         raise HTTPException(
             status_code=400,
-            detail={"error": "invalid_deal_type", "message": f"Deal type must be one of: PG, PD, PA. Got: {request.deal_type}"},
+            detail={
+                "error": "invalid_deal_type",
+                "message": f"Deal type must be one of: PG, PD, PA. Got: {request.deal_type}",
+            },
         )
 
     # PG requires impressions
     if deal_type_str == "PG" and not request.impressions:
         raise HTTPException(
             status_code=400,
-            detail={"error": "pg_requires_impressions", "message": "Programmatic Guaranteed deals require an impressions count."},
+            detail={
+                "error": "pg_requires_impressions",
+                "message": "Programmatic Guaranteed deals require an impressions count.",
+            },
         )
 
     # Get product catalog
@@ -2767,17 +2836,23 @@ async def create_deal_from_template(
     if not product:
         raise HTTPException(
             status_code=404,
-            detail={"error": "product_not_found", "message": f"Product '{request.product_id}' not found in catalog."},
+            detail={
+                "error": "product_not_found",
+                "message": f"Product '{request.product_id}' not found in catalog.",
+            },
         )
 
     # Resolve buyer context from API key + body
     buyer_ident = request.buyer_identity
     context = _build_buyer_context(
         buyer_tier=(
-            "advertiser" if (buyer_ident and buyer_ident.advertiser_id) else
-            "agency" if (buyer_ident and buyer_ident.agency_id) else
-            "seat" if (buyer_ident and buyer_ident.seat_id) else
-            "public"
+            "advertiser"
+            if (buyer_ident and buyer_ident.advertiser_id)
+            else "agency"
+            if (buyer_ident and buyer_ident.agency_id)
+            else "seat"
+            if (buyer_ident and buyer_ident.seat_id)
+            else "public"
         ),
         agency_id=buyer_ident.agency_id if buyer_ident else None,
         advertiser_id=buyer_ident.advertiser_id if buyer_ident else None,
@@ -2845,7 +2920,7 @@ async def create_deal_from_template(
 
     # Build schain for the deal response
     from ...config import get_settings as _get_settings
-    from ...models.supply_chain import load_sellers_json, build_schain_from_sellers_json
+    from ...models.supply_chain import build_schain_from_sellers_json, load_sellers_json
 
     _settings = _get_settings()
     _sellers_json_path = getattr(_settings, "sellers_json_path", None)
@@ -2862,7 +2937,15 @@ async def create_deal_from_template(
         schain_data = {
             "ver": "1.0",
             "complete": 1,
-            "nodes": [{"asi": _seller_domain, "sid": "default", "hp": 1, "name": _seller_org_name, "domain": _seller_domain}],
+            "nodes": [
+                {
+                    "asi": _seller_domain,
+                    "sid": "default",
+                    "hp": 1,
+                    "name": _seller_org_name,
+                    "domain": _seller_domain,
+                }
+            ],
         }
         deal_data["schain"] = schain_data
 
@@ -2925,7 +3008,7 @@ async def get_supply_chain():
     Also includes an OpenRTB-compatible schain object.
     """
     from ...config import get_settings
-    from ...models.supply_chain import load_sellers_json, build_schain_from_sellers_json
+    from ...models.supply_chain import build_schain_from_sellers_json, load_sellers_json
 
     settings = get_settings()
     seller_domain = getattr(settings, "seller_domain", "demo-publisher.example.com")
@@ -2950,10 +3033,15 @@ async def get_supply_chain():
                 name=node.name or "",
                 domain=node.domain or node.asi,
                 seller_type=(
-                    next((s.seller_type for s in sellers_json.sellers if s.seller_id == node.sid), "PUBLISHER")
+                    next(
+                        (s.seller_type for s in sellers_json.sellers if s.seller_id == node.sid),
+                        "PUBLISHER",
+                    )
                 ),
                 is_direct=(node == schain_obj.nodes[0]) if schain_obj.nodes else False,
-                comment=next((s.comment for s in sellers_json.sellers if s.seller_id == node.sid), None),
+                comment=next(
+                    (s.comment for s in sellers_json.sellers if s.seller_id == node.sid), None
+                ),
             )
             for node in schain_obj.nodes
         ]
@@ -3106,25 +3194,37 @@ async def bulk_deal_operations(
         try:
             if op.action == "create":
                 if not op.quote_id:
-                    results.append(BulkDealOperationResult(
-                        index=i, action="create", success=False,
-                        error="quote_id is required for create",
-                    ))
+                    results.append(
+                        BulkDealOperationResult(
+                            index=i,
+                            action="create",
+                            success=False,
+                            error="quote_id is required for create",
+                        )
+                    )
                     continue
 
                 quote = await storage.get_quote(op.quote_id)
                 if not quote:
-                    results.append(BulkDealOperationResult(
-                        index=i, action="create", success=False,
-                        error=f"Quote '{op.quote_id}' not found",
-                    ))
+                    results.append(
+                        BulkDealOperationResult(
+                            index=i,
+                            action="create",
+                            success=False,
+                            error=f"Quote '{op.quote_id}' not found",
+                        )
+                    )
                     continue
 
                 if quote.get("status") != QuoteStatus.AVAILABLE.value:
-                    results.append(BulkDealOperationResult(
-                        index=i, action="create", success=False,
-                        error=f"Quote status is '{quote.get('status')}', expected 'available'",
-                    ))
+                    results.append(
+                        BulkDealOperationResult(
+                            index=i,
+                            action="create",
+                            success=False,
+                            error=f"Quote status is '{quote.get('status')}', expected 'available'",
+                        )
+                    )
                     continue
 
                 # Generate deal
@@ -3144,24 +3244,37 @@ async def bulk_deal_operations(
                 quote["status"] = QuoteStatus.BOOKED.value
                 await storage.set_quote(op.quote_id, quote)
 
-                results.append(BulkDealOperationResult(
-                    index=i, action="create", success=True, deal_id=deal_id,
-                ))
+                results.append(
+                    BulkDealOperationResult(
+                        index=i,
+                        action="create",
+                        success=True,
+                        deal_id=deal_id,
+                    )
+                )
 
             elif op.action == "cancel":
                 if not op.deal_id:
-                    results.append(BulkDealOperationResult(
-                        index=i, action="cancel", success=False,
-                        error="deal_id is required for cancel",
-                    ))
+                    results.append(
+                        BulkDealOperationResult(
+                            index=i,
+                            action="cancel",
+                            success=False,
+                            error="deal_id is required for cancel",
+                        )
+                    )
                     continue
 
                 deal = await storage.get_deal(op.deal_id)
                 if not deal:
-                    results.append(BulkDealOperationResult(
-                        index=i, action="cancel", success=False,
-                        error=f"Deal '{op.deal_id}' not found",
-                    ))
+                    results.append(
+                        BulkDealOperationResult(
+                            index=i,
+                            action="cancel",
+                            success=False,
+                            error=f"Deal '{op.deal_id}' not found",
+                        )
+                    )
                     continue
 
                 deal["status"] = "cancelled"
@@ -3169,24 +3282,37 @@ async def bulk_deal_operations(
                 deal["cancel_reason"] = op.notes or "Cancelled via bulk operation"
                 await storage.set_deal(op.deal_id, deal)
 
-                results.append(BulkDealOperationResult(
-                    index=i, action="cancel", success=True, deal_id=op.deal_id,
-                ))
+                results.append(
+                    BulkDealOperationResult(
+                        index=i,
+                        action="cancel",
+                        success=True,
+                        deal_id=op.deal_id,
+                    )
+                )
 
             elif op.action == "update":
                 if not op.deal_id:
-                    results.append(BulkDealOperationResult(
-                        index=i, action="update", success=False,
-                        error="deal_id is required for update",
-                    ))
+                    results.append(
+                        BulkDealOperationResult(
+                            index=i,
+                            action="update",
+                            success=False,
+                            error="deal_id is required for update",
+                        )
+                    )
                     continue
 
                 deal = await storage.get_deal(op.deal_id)
                 if not deal:
-                    results.append(BulkDealOperationResult(
-                        index=i, action="update", success=False,
-                        error=f"Deal '{op.deal_id}' not found",
-                    ))
+                    results.append(
+                        BulkDealOperationResult(
+                            index=i,
+                            action="update",
+                            success=False,
+                            error=f"Deal '{op.deal_id}' not found",
+                        )
+                    )
                     continue
 
                 if op.notes:
@@ -3194,20 +3320,34 @@ async def bulk_deal_operations(
                 deal["updated_at"] = datetime.utcnow().isoformat() + "Z"
                 await storage.set_deal(op.deal_id, deal)
 
-                results.append(BulkDealOperationResult(
-                    index=i, action="update", success=True, deal_id=op.deal_id,
-                ))
+                results.append(
+                    BulkDealOperationResult(
+                        index=i,
+                        action="update",
+                        success=True,
+                        deal_id=op.deal_id,
+                    )
+                )
 
             else:
-                results.append(BulkDealOperationResult(
-                    index=i, action=op.action, success=False,
-                    error=f"Unknown action '{op.action}'. Must be create, update, or cancel.",
-                ))
+                results.append(
+                    BulkDealOperationResult(
+                        index=i,
+                        action=op.action,
+                        success=False,
+                        error=f"Unknown action '{op.action}'. Must be create, update, or cancel.",
+                    )
+                )
 
         except Exception as e:
-            results.append(BulkDealOperationResult(
-                index=i, action=op.action, success=False, error=str(e),
-            ))
+            results.append(
+                BulkDealOperationResult(
+                    index=i,
+                    action=op.action,
+                    success=False,
+                    error=str(e),
+                )
+            )
 
     succeeded = sum(1 for r in results if r.success)
     return BulkDealResponse(
@@ -3283,12 +3423,15 @@ async def override_inventory_type(
     now = datetime.utcnow().isoformat() + "Z"
 
     # Store override in a separate key for persistence across syncs
-    await storage.set(f"inventory_override:{product_id}", {
-        "product_id": product_id,
-        "inventory_type": request.inventory_type,
-        "reason": request.reason,
-        "applied_at": now,
-    })
+    await storage.set(
+        f"inventory_override:{product_id}",
+        {
+            "product_id": product_id,
+            "inventory_type": request.inventory_type,
+            "reason": request.reason,
+            "applied_at": now,
+        },
+    )
 
     return InventoryTypeOverrideResponse(
         product_id=product_id,
@@ -3309,7 +3452,10 @@ async def get_inventory_type_override(product_id: str):
     if not override:
         raise HTTPException(
             status_code=404,
-            detail={"error": "no_override", "message": f"No inventory type override for product '{product_id}'."},
+            detail={
+                "error": "no_override",
+                "message": f"No inventory type override for product '{product_id}'.",
+            },
         )
 
     return override
@@ -3326,7 +3472,10 @@ async def delete_inventory_type_override(product_id: str):
     if not override:
         raise HTTPException(
             status_code=404,
-            detail={"error": "no_override", "message": f"No inventory type override for product '{product_id}'."},
+            detail={
+                "error": "no_override",
+                "message": f"No inventory type override for product '{product_id}'.",
+            },
         )
 
     await storage.delete(f"inventory_override:{product_id}")
@@ -3423,6 +3572,7 @@ async def update_rate_card(entries: list[RateCardEntry]):
 async def get_inventory_sync_status():
     """Get the current status of the periodic inventory sync scheduler."""
     from ...services.inventory_sync_scheduler import get_sync_status
+
     return get_sync_status()
 
 
@@ -3437,8 +3587,8 @@ async def trigger_inventory_sync(
             (based on stored sync watermark). Full sync if false or no
             previous watermark exists.
     """
-    from ...services.inventory_sync_scheduler import _run_sync
     from ...config import get_settings
+    from ...services.inventory_sync_scheduler import _run_sync
     from ...storage.factory import get_storage
 
     settings = get_settings()
@@ -3454,11 +3604,14 @@ async def trigger_inventory_sync(
 
     # Store sync watermark for incremental support
     now = datetime.utcnow().isoformat() + "Z"
-    await storage.set("sync_watermark:inventory", {
-        "last_sync_at": now,
-        "was_incremental": incremental,
-        "since_timestamp": since_timestamp,
-    })
+    await storage.set(
+        "sync_watermark:inventory",
+        {
+            "last_sync_at": now,
+            "was_incremental": incremental,
+            "since_timestamp": since_timestamp,
+        },
+    )
 
     result["incremental"] = incremental
     result["since_timestamp"] = since_timestamp
@@ -3507,8 +3660,13 @@ async def export_deals(
             "deals": [
                 {
                     "DealId": d.get("deal_id"),
-                    "DealType": "ProgrammaticGuaranteed" if d.get("deal_type") == "PG" else "PreferredDeal" if d.get("deal_type") == "PD" else "PrivateAuction",
-                    "BidFloor": d.get("actual_price_cpm") or d.get("pricing", {}).get("final_cpm", 0),
+                    "DealType": "ProgrammaticGuaranteed"
+                    if d.get("deal_type") == "PG"
+                    else "PreferredDeal"
+                    if d.get("deal_type") == "PD"
+                    else "PrivateAuction",
+                    "BidFloor": d.get("actual_price_cpm")
+                    or d.get("pricing", {}).get("final_cpm", 0),
                     "Currency": "USD",
                     "Status": "Active" if d.get("status") == "confirmed" else "Inactive",
                 }
@@ -3524,7 +3682,11 @@ async def export_deals(
                     "dealId": d.get("deal_id"),
                     "displayName": f"Deal {d.get('deal_id')}",
                     "dealType": d.get("deal_type", "PD"),
-                    "fixedCpm": {"currencyCode": "USD", "units": str(int(d.get("actual_price_cpm", 0) or 0)), "nanos": 0},
+                    "fixedCpm": {
+                        "currencyCode": "USD",
+                        "units": str(int(d.get("actual_price_cpm", 0) or 0)),
+                        "nanos": 0,
+                    },
                     "status": "ACCEPTED" if d.get("status") == "confirmed" else "PENDING",
                 }
                 for d in all_deals
@@ -3538,8 +3700,11 @@ async def export_deals(
                 {
                     "dealId": d.get("deal_id"),
                     "dealName": f"Deal {d.get('deal_id')}",
-                    "auctionType": "FIXED_PRICE" if d.get("deal_type") in ("PG", "PD") else "SECOND_PRICE",
-                    "priceAmount": d.get("actual_price_cpm") or d.get("pricing", {}).get("final_cpm", 0),
+                    "auctionType": "FIXED_PRICE"
+                    if d.get("deal_type") in ("PG", "PD")
+                    else "SECOND_PRICE",
+                    "priceAmount": d.get("actual_price_cpm")
+                    or d.get("pricing", {}).get("final_cpm", 0),
                     "priceCurrency": "USD",
                 }
                 for d in all_deals
@@ -3553,8 +3718,11 @@ async def export_deals(
                 {
                     "id": d.get("deal_id"),
                     "name": f"Deal {d.get('deal_id')}",
-                    "type": {"1": "PG", "2": "PD", "3": "PA"}.get(d.get("deal_type"), d.get("deal_type")),
-                    "floor_price": d.get("actual_price_cpm") or d.get("pricing", {}).get("final_cpm", 0),
+                    "type": {"1": "PG", "2": "PD", "3": "PA"}.get(
+                        d.get("deal_type"), d.get("deal_type")
+                    ),
+                    "floor_price": d.get("actual_price_cpm")
+                    or d.get("pricing", {}).get("final_cpm", 0),
                     "currency": "USD",
                     "active": d.get("status") == "confirmed",
                 }
@@ -3615,9 +3783,9 @@ async def push_deal_to_buyers(request: DealPushRequest):
     This is the standardized deal distribution path — alternative to
     SSP-mediated distribution (PubMatic, Index Exchange, etc.).
     """
+    from ...config import get_settings
     from ...services.deals_api import DealsAPIService
     from ...storage.factory import get_storage
-    from ...config import get_settings
 
     settings = get_settings()
     service = DealsAPIService()
@@ -3628,7 +3796,11 @@ async def push_deal_to_buyers(request: DealPushRequest):
 
     # Build IAB Deal object
     deal_type = request.deal_type or (stored_deal or {}).get("deal_type", "PD")
-    price = request.price or (stored_deal or {}).get("actual_price_cpm") or (stored_deal or {}).get("pricing", {}).get("final_cpm", 0)
+    price = (
+        request.price
+        or (stored_deal or {}).get("actual_price_cpm")
+        or (stored_deal or {}).get("pricing", {}).get("final_cpm", 0)
+    )
 
     deal_obj = service.build_deal_object(
         deal_id=request.deal_id,
@@ -3717,7 +3889,10 @@ async def distribute_deal_via_ssp(request: SSPDealDistributeRequest):
     if not registry.list_ssps():
         raise HTTPException(
             status_code=503,
-            detail={"error": "no_ssps_configured", "message": "No SSP connectors configured. Set SSP_CONNECTORS in environment."},
+            detail={
+                "error": "no_ssps_configured",
+                "message": "No SSP connectors configured. Set SSP_CONNECTORS in environment.",
+            },
         )
 
     # Get the right SSP client
@@ -3732,7 +3907,11 @@ async def distribute_deal_via_ssp(request: SSPDealDistributeRequest):
     except (KeyError, RuntimeError) as e:
         raise HTTPException(
             status_code=400,
-            detail={"error": "ssp_routing_failed", "message": str(e), "available_ssps": registry.list_ssps()},
+            detail={
+                "error": "ssp_routing_failed",
+                "message": str(e),
+                "available_ssps": registry.list_ssps(),
+            },
         )
 
     # Map deal type
@@ -3784,7 +3963,11 @@ async def troubleshoot_deal_via_ssp(deal_id: str, ssp_name: str):
     except KeyError:
         raise HTTPException(
             status_code=400,
-            detail={"error": "unknown_ssp", "message": f"SSP '{ssp_name}' not configured.", "available_ssps": registry.list_ssps()},
+            detail={
+                "error": "unknown_ssp",
+                "message": f"SSP '{ssp_name}' not configured.",
+                "available_ssps": registry.list_ssps(),
+            },
         )
 
     async with ssp:
@@ -3872,7 +4055,10 @@ async def get_curator(curator_id: str):
     except KeyError:
         raise HTTPException(
             status_code=404,
-            detail={"error": "curator_not_found", "message": f"Curator '{curator_id}' not registered."},
+            detail={
+                "error": "curator_not_found",
+                "message": f"Curator '{curator_id}' not registered.",
+            },
         )
 
     return {
@@ -3898,7 +4084,6 @@ async def register_curator(request: CuratorRegistrationRequest):
     via the /api/v1/deals/curated endpoint.
     """
     from ...models.curator import Curator, CuratorFee, CuratorFeeType, CuratorType
-    from ...services.curator_registry import build_curator_registry
     from ...storage.factory import get_storage
 
     curator = Curator(
@@ -3943,12 +4128,8 @@ async def create_curated_deal(request: CuratedDealRequest):
     import uuid as uuid_mod
     from datetime import timedelta
 
-    from ...services.curator_registry import build_curator_registry
-    from ...models.supply_chain import SchainNode
-    from ...engines.pricing_rules_engine import PricingRulesEngine
     from ...flows import ProductSetupFlow
-    from ...models.core import DealType
-    from ...models.pricing_tiers import TieredPricingConfig
+    from ...services.curator_registry import build_curator_registry
     from ...storage.factory import get_storage
 
     # Get curator
@@ -3958,13 +4139,19 @@ async def create_curated_deal(request: CuratedDealRequest):
     except KeyError:
         raise HTTPException(
             status_code=404,
-            detail={"error": "curator_not_found", "message": f"Curator '{request.curator_id}' not registered."},
+            detail={
+                "error": "curator_not_found",
+                "message": f"Curator '{request.curator_id}' not registered.",
+            },
         )
 
     if not curator.is_active:
         raise HTTPException(
             status_code=403,
-            detail={"error": "curator_inactive", "message": f"Curator '{curator.name}' is not active."},
+            detail={
+                "error": "curator_inactive",
+                "message": f"Curator '{curator.name}' is not active.",
+            },
         )
 
     # Get base price from product catalog
@@ -4008,6 +4195,7 @@ async def create_curated_deal(request: CuratedDealRequest):
 
     # Build schain with publisher + curator nodes
     from ...config import get_settings
+
     settings = get_settings()
     seller_domain = getattr(settings, "seller_domain", "demo-publisher.example.com")
     seller_name = getattr(settings, "seller_organization_name", "Demo Publisher")
@@ -4017,9 +4205,21 @@ async def create_curated_deal(request: CuratedDealRequest):
         "complete": 1,
         "nodes": [
             # Publisher node
-            {"asi": seller_domain, "sid": "default", "hp": 1, "name": seller_name, "domain": seller_domain},
+            {
+                "asi": seller_domain,
+                "sid": "default",
+                "hp": 1,
+                "name": seller_name,
+                "domain": seller_domain,
+            },
             # Curator node
-            {"asi": curator.domain, "sid": curator.curator_id, "hp": 1, "name": curator.name, "domain": curator.domain},
+            {
+                "asi": curator.domain,
+                "sid": curator.curator_id,
+                "hp": 1,
+                "name": curator.name,
+                "domain": curator.domain,
+            },
         ],
     }
 
@@ -4135,11 +4335,17 @@ async def migrate_deal(
         "deal_type": request.deal_type or old_deal.get("deal_type", "PD"),
         "status": "confirmed",
         "product_id": request.product_id or old_deal.get("product_id"),
-        "actual_price_cpm": request.max_cpm or old_deal.get("actual_price_cpm") or old_deal.get("pricing", {}).get("final_cpm"),
+        "actual_price_cpm": request.max_cpm
+        or old_deal.get("actual_price_cpm")
+        or old_deal.get("pricing", {}).get("final_cpm"),
         "currency": old_deal.get("currency", "USD"),
         "impressions": request.impressions or old_deal.get("impressions"),
-        "flight_start": request.flight_start or old_deal.get("flight_start") or now.strftime("%Y-%m-%d"),
-        "flight_end": request.flight_end or old_deal.get("flight_end") or (now + timedelta(days=30)).strftime("%Y-%m-%d"),
+        "flight_start": request.flight_start
+        or old_deal.get("flight_start")
+        or now.strftime("%Y-%m-%d"),
+        "flight_end": request.flight_end
+        or old_deal.get("flight_end")
+        or (now + timedelta(days=30)).strftime("%Y-%m-%d"),
         "buyer_seat_ids": request.buyer_seat_ids or old_deal.get("buyer_seat_ids", []),
         # Lineage
         "parent_deal_id": deal_id,
@@ -4247,9 +4453,6 @@ async def get_deal_lineage(deal_id: str):
 
     storage = await get_storage()
 
-    chain = []
-    current_id = deal_id
-
     # Walk backwards (parents)
     parents = []
     visited = set()
@@ -4261,10 +4464,13 @@ async def get_deal_lineage(deal_id: str):
             break
         parent_id = deal.get("parent_deal_id")
         if parent_id:
-            parents.insert(0, {
-                "deal_id": parent_id,
-                "status": (await storage.get_deal(parent_id) or {}).get("status", "unknown"),
-            })
+            parents.insert(
+                0,
+                {
+                    "deal_id": parent_id,
+                    "status": (await storage.get_deal(parent_id) or {}).get("status", "unknown"),
+                },
+            )
         walk_id = parent_id
 
     # Current deal
@@ -4279,11 +4485,13 @@ async def get_deal_lineage(deal_id: str):
         deal = await storage.get_deal(walk_id)
         if not deal:
             break
-        replacements.append({
-            "deal_id": walk_id,
-            "status": deal.get("status", "unknown"),
-            "reason": deal.get("migration_reason"),
-        })
+        replacements.append(
+            {
+                "deal_id": walk_id,
+                "status": deal.get("status", "unknown"),
+                "reason": deal.get("migration_reason"),
+            }
+        )
         walk_id = deal.get("replacement_deal_id")
 
     return {

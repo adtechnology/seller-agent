@@ -32,9 +32,9 @@ from .core import PricingModel
 class PackageLayer(str, Enum):
     """Layer indicating how a package was created."""
 
-    SYNCED = "synced"       # Layer 1: imported from ad server
-    CURATED = "curated"     # Layer 2: seller-created
-    DYNAMIC = "dynamic"     # Layer 3: agent-assembled on the fly
+    SYNCED = "synced"  # Layer 1: imported from ad server
+    CURATED = "curated"  # Layer 2: seller-created
+    DYNAMIC = "dynamic"  # Layer 3: agent-assembled on the fly
 
 
 class PackageStatus(str, Enum):
@@ -50,9 +50,9 @@ class PackagePlacement(BaseModel):
 
     product_id: str
     product_name: str
-    ad_formats: list[str] = Field(default_factory=list)    # ["banner", "video", "native", "audio"]
+    ad_formats: list[str] = Field(default_factory=list)  # ["banner", "video", "native", "audio"]
     device_types: list[int] = Field(default_factory=list)  # AdCOM DeviceType ints
-    weight: float = 1.0                                     # relative weight in package
+    weight: float = 1.0  # relative weight in package
 
 
 class Package(BaseModel):
@@ -79,8 +79,10 @@ class Package(BaseModel):
     audience_segment_ids: list[str] = Field(default_factory=list)  # e.g. ["3", "4", "5"]
 
     # AdCOM-aligned inventory classification (canonical)
-    device_types: list[int] = Field(default_factory=list)  # 1=Mobile, 2=PC, 3=CTV, 4=Phone, 5=Tablet, 6=Connected Device, 7=STB
-    ad_formats: list[str] = Field(default_factory=list)     # ["banner", "video", "native", "audio"]
+    device_types: list[int] = Field(
+        default_factory=list
+    )  # 1=Mobile, 2=PC, 3=CTV, 4=Phone, 5=Tablet, 6=Connected Device, 7=STB
+    ad_formats: list[str] = Field(default_factory=list)  # ["banner", "video", "native", "audio"]
 
     # Geo targeting (ISO 3166-2)
     geo_targets: list[str] = Field(default_factory=list)  # ["US", "US-NY", "US-CA"]

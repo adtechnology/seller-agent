@@ -21,7 +21,6 @@ from .ad_server_base import (
     DealStatus,
 )
 
-
 # =============================================================================
 # Price conversion
 # =============================================================================
@@ -112,7 +111,9 @@ def _parse_sizes(raw_sizes: list) -> list[tuple[int, int]]:
 # =============================================================================
 
 
-def normalize_audience_segments(raw_segments: list[dict[str, Any]]) -> list[AdServerAudienceSegment]:
+def normalize_audience_segments(
+    raw_segments: list[dict[str, Any]],
+) -> list[AdServerAudienceSegment]:
     """Normalize FreeWheel audience segments."""
     segments = []
     for raw in raw_segments:

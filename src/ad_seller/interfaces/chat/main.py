@@ -12,8 +12,8 @@ Enables natural language conversations with buyers for:
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from ...flows import DiscoveryInquiryFlow, DealRequestFlow, ProductSetupFlow
-from ...models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
+from ...flows import DealRequestFlow, ProductSetupFlow
+from ...models.buyer_identity import AccessTier, BuyerContext, BuyerIdentity
 from ...models.session import Session, SessionStatus
 
 
@@ -75,9 +75,7 @@ class ChatInterface:
     # Session management
     # =========================================================================
 
-    async def start_session(
-        self, buyer_context: Optional[BuyerContext] = None
-    ) -> Session:
+    async def start_session(self, buyer_context: Optional[BuyerContext] = None) -> Session:
         """Create a new persistent session.
 
         Args:
@@ -93,6 +91,7 @@ class ChatInterface:
             raise RuntimeError("Storage backend required for session persistence")
 
         from ...config import get_settings
+
         settings = get_settings()
 
         session = Session(
@@ -113,6 +112,7 @@ class ChatInterface:
         # Emit event
         from ...events.helpers import emit_event
         from ...events.models import EventType
+
         await emit_event(
             event_type=EventType.SESSION_CREATED,
             session_id=session.session_id,
@@ -158,13 +158,13 @@ class ChatInterface:
         self._current_session = session
         self._buyer_context = session.buyer_context
         self._conversation_history = [
-            {"role": m.role, "content": m.content}
-            for m in session.messages
+            {"role": m.role, "content": m.content} for m in session.messages
         ]
 
         # Emit event
         from ...events.helpers import emit_event
         from ...events.models import EventType
+
         await emit_event(
             event_type=EventType.SESSION_RESUMED,
             session_id=session.session_id,
@@ -179,9 +179,7 @@ class ChatInterface:
         Args:
             session_id: Session to close. Uses current session if None.
         """
-        sid = session_id or (
-            self._current_session.session_id if self._current_session else None
-        )
+        sid = session_id or (self._current_session.session_id if self._current_session else None)
         if not sid or not self._storage:
             return
 
@@ -194,6 +192,7 @@ class ChatInterface:
 
             from ...events.helpers import emit_event
             from ...events.models import EventType
+
             await emit_event(
                 event_type=EventType.SESSION_CLOSED,
                 session_id=sid,
@@ -209,6 +208,7 @@ class ChatInterface:
             return
 
         from ...config import get_settings
+
         settings = get_settings()
 
         await self._storage.set_session(
@@ -238,10 +238,12 @@ class ChatInterface:
         context = buyer_context or self._buyer_context or self._default_context()
 
         # Add to conversation history
-        self._conversation_history.append({
-            "role": "user",
-            "content": message,
-        })
+        self._conversation_history.append(
+            {
+                "role": "user",
+                "content": message,
+            }
+        )
 
         # Determine message intent
         message_lower = message.lower()
@@ -259,10 +261,12 @@ class ChatInterface:
             response = self._handle_general_inquiry(message, context)
 
         # Add response to history
-        self._conversation_history.append({
-            "role": "assistant",
-            "content": response.get("text", ""),
-        })
+        self._conversation_history.append(
+            {
+                "role": "assistant",
+                "content": response.get("text", ""),
+            }
+        )
 
         return response
 
@@ -321,8 +325,12 @@ class ChatInterface:
                 self._current_session.negotiation.last_intent = "counter_offer"
                 neg_data = response.get("negotiation")
                 if neg_data:
-                    self._current_session.negotiation.negotiation_id = neg_data.get("negotiation_id")
-                    self._current_session.negotiation.counter_round = neg_data.get("round_number", 0)
+                    self._current_session.negotiation.negotiation_id = neg_data.get(
+                        "negotiation_id"
+                    )
+                    self._current_session.negotiation.counter_round = neg_data.get(
+                        "round_number", 0
+                    )
                     self._current_session.negotiation.last_counter_result = neg_data
 
             await self._save_session(self._current_session)
@@ -353,9 +361,16 @@ class ChatInterface:
     def _is_counter_offer(self, message: str) -> bool:
         """Check if message is a counter-offer or negotiation attempt."""
         counter_keywords = [
-            "counter", "lower", "negotiate", "how about",
-            "would you accept", "can you do", "what about",
-            "best price", "too high", "too expensive",
+            "counter",
+            "lower",
+            "negotiate",
+            "how about",
+            "would you accept",
+            "can you do",
+            "what about",
+            "best price",
+            "too high",
+            "too expensive",
         ]
         return any(keyword in message for keyword in counter_keywords)
 
@@ -396,7 +411,7 @@ class ChatInterface:
                 "text": (
                     "I'd be happy to negotiate! "
                     "Please include the price you'd like to offer "
-                    "(e.g., \"How about $25 CPM?\")."
+                    '(e.g., "How about $25 CPM?").'
                 ),
                 "type": "negotiation",
             }
@@ -420,6 +435,7 @@ class ChatInterface:
             and self._storage
         ):
             import asyncio
+
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
@@ -474,11 +490,12 @@ class ChatInterface:
     def _extract_price(message: str) -> Optional[float]:
         """Extract a dollar price from a message string."""
         import re
+
         # Match patterns like "$25", "$25.50", "25 CPM", "25.50 cpm"
         patterns = [
-            r'\$(\d+(?:\.\d+)?)',           # $25 or $25.50
-            r'(\d+(?:\.\d+)?)\s*(?:cpm|CPM)',  # 25 CPM
-            r'(\d+(?:\.\d+)?)\s*(?:dollars?)',  # 25 dollars
+            r"\$(\d+(?:\.\d+)?)",  # $25 or $25.50
+            r"(\d+(?:\.\d+)?)\s*(?:cpm|CPM)",  # 25 CPM
+            r"(\d+(?:\.\d+)?)\s*(?:dollars?)",  # 25 dollars
         ]
         for pattern in patterns:
             match = re.search(pattern, message)
@@ -553,11 +570,11 @@ As a {tier.value} tier buyer, you receive a {discount}% discount from our standa
 
 | Inventory Type | Your Rate |
 |----------------|-----------|
-| Display        | ${12 * (1 - discount/100):.2f} CPM |
-| Video          | ${25 * (1 - discount/100):.2f} CPM |
-| CTV            | ${35 * (1 - discount/100):.2f} CPM |
-| Mobile App     | ${18 * (1 - discount/100):.2f} CPM |
-| Native         | ${10 * (1 - discount/100):.2f} CPM |
+| Display        | ${12 * (1 - discount / 100):.2f} CPM |
+| Video          | ${25 * (1 - discount / 100):.2f} CPM |
+| CTV            | ${35 * (1 - discount / 100):.2f} CPM |
+| Mobile App     | ${18 * (1 - discount / 100):.2f} CPM |
+| Native         | ${10 * (1 - discount / 100):.2f} CPM |
 
 Volume discounts are available for orders over 5M impressions.
 Ready to create a deal? Just let me know!

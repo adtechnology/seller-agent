@@ -7,7 +7,7 @@ Evaluates incoming proposals, validates against products,
 and recommends accept/counter/reject decisions.
 """
 
-from crewai import Agent, LLM
+from crewai import LLM, Agent
 
 from ...config import get_settings
 

@@ -26,7 +26,6 @@ from pydantic import BaseModel, Field
 
 from .buyer_identity import AccessTier
 
-
 # =============================================================================
 # Agent Card Components (A2A Protocol)
 # =============================================================================

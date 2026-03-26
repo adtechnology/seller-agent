@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from .core import DealType, PricingModel, ProposalStatus
+from .core import DealType, PricingModel
 
 
 class ExecutionStatus(str, Enum):

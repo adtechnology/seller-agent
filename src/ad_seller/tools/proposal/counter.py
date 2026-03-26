@@ -3,7 +3,7 @@
 
 """Counter Proposal Tool - Generate counter-proposal terms."""
 
-from typing import Optional, Type
+from typing import Type
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -49,7 +49,7 @@ class CounterProposalTool(BaseTool):
             # Offer a compromise
             counter_price = original_price + (price_gap * 0.7)
             counter_terms.append(f"Price: ${counter_price:.2f} CPM (from ${original_price:.2f})")
-            rationale.append(f"Price adjustment to meet minimum yield requirements")
+            rationale.append("Price adjustment to meet minimum yield requirements")
 
         # Impressions counter
         if original_impressions > available_impressions:
@@ -76,14 +76,14 @@ Counter Terms:
         for term in counter_terms:
             response += f"- {term}\n"
 
-        response += f"""
+        response += """
 Rationale:
 """
         for r in rationale:
             response += f"- {r}\n"
 
         if sweeteners:
-            response += f"""
+            response += """
 Value Additions:
 """
             for s in sweeteners:

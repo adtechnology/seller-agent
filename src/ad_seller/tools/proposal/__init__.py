@@ -3,7 +3,7 @@
 
 """Proposal tools for seller agents."""
 
-from .validation import ProposalValidationTool
 from .counter import CounterProposalTool
+from .validation import ProposalValidationTool
 
 __all__ = ["ProposalValidationTool", "CounterProposalTool"]

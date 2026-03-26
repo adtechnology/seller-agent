@@ -10,12 +10,10 @@ from ad_seller.models.order_state_machine import (
     OrderAuditLog,
     OrderStateMachine,
     OrderStatus,
-    StateTransition,
     TransitionRule,
     from_execution_order_status,
     from_execution_status,
 )
-
 
 # =============================================================================
 # OrderStatus enum
@@ -23,12 +21,20 @@ from ad_seller.models.order_state_machine import (
 
 
 class TestOrderStatus:
-
     def test_all_expected_statuses_exist(self):
         expected = {
-            "draft", "submitted", "pending_approval", "approved", "rejected",
-            "in_progress", "syncing", "completed", "failed", "cancelled",
-            "booked", "unbooked",
+            "draft",
+            "submitted",
+            "pending_approval",
+            "approved",
+            "rejected",
+            "in_progress",
+            "syncing",
+            "completed",
+            "failed",
+            "cancelled",
+            "booked",
+            "unbooked",
         }
         actual = {s.value for s in OrderStatus}
         assert actual == expected
@@ -44,7 +50,6 @@ class TestOrderStatus:
 
 
 class TestHappyPath:
-
     def test_full_lifecycle_draft_to_completed(self):
         sm = OrderStateMachine(order_id="order-001")
         assert sm.status == OrderStatus.DRAFT
@@ -90,7 +95,6 @@ class TestHappyPath:
 
 
 class TestInvalidTransitions:
-
     def test_cannot_skip_states(self):
         sm = OrderStateMachine(order_id="order-010")
         with pytest.raises(InvalidTransitionError) as exc_info:
@@ -129,7 +133,6 @@ class TestInvalidTransitions:
 
 
 class TestGuardConditions:
-
     def test_guard_allows_transition(self):
         def require_high_value(order_id, from_s, to_s, ctx):
             return ctx.get("total_value", 0) > 1000
@@ -173,7 +176,6 @@ class TestGuardConditions:
 
 
 class TestAllowedTransitions:
-
     def test_draft_can_submit_or_cancel(self):
         sm = OrderStateMachine(order_id="order-030")
         allowed = sm.allowed_transitions()
@@ -197,7 +199,6 @@ class TestAllowedTransitions:
 
 
 class TestAuditLog:
-
     def test_transitions_recorded_in_order(self):
         sm = OrderStateMachine(order_id="order-040")
         sm.transition(OrderStatus.SUBMITTED, actor="agent:buyer")
@@ -235,7 +236,6 @@ class TestAuditLog:
 
 
 class TestCustomRules:
-
     def test_add_custom_rule(self):
         sm = OrderStateMachine(order_id="order-050")
         sm.transition(OrderStatus.SUBMITTED)
@@ -249,11 +249,13 @@ class TestCustomRules:
         assert sm.allowed_transitions() == []
 
         # Add a custom rule allowing completed -> draft (re-open)
-        sm.add_rule(TransitionRule(
-            from_status=OrderStatus.COMPLETED,
-            to_status=OrderStatus.DRAFT,
-            description="Re-open completed order",
-        ))
+        sm.add_rule(
+            TransitionRule(
+                from_status=OrderStatus.COMPLETED,
+                to_status=OrderStatus.DRAFT,
+                description="Re-open completed order",
+            )
+        )
         assert OrderStatus.DRAFT in sm.allowed_transitions()
 
     def test_remove_rule(self):
@@ -276,7 +278,6 @@ class TestCustomRules:
 
 
 class TestSerialization:
-
     def test_round_trip_serialization(self):
         sm = OrderStateMachine(order_id="order-060")
         sm.transition(OrderStatus.SUBMITTED, actor="agent:buyer")
@@ -305,7 +306,6 @@ class TestSerialization:
 
 
 class TestLegacyMapping:
-
     def test_execution_status_mapping(self):
         assert from_execution_status("initialized") == OrderStatus.DRAFT
         assert from_execution_status("pending_approval") == OrderStatus.PENDING_APPROVAL
@@ -332,13 +332,15 @@ class TestLegacyMapping:
 
 
 class TestCancellation:
-
-    @pytest.mark.parametrize("intermediate", [
-        OrderStatus.SUBMITTED,
-        OrderStatus.PENDING_APPROVAL,
-        OrderStatus.APPROVED,
-        OrderStatus.IN_PROGRESS,
-    ])
+    @pytest.mark.parametrize(
+        "intermediate",
+        [
+            OrderStatus.SUBMITTED,
+            OrderStatus.PENDING_APPROVAL,
+            OrderStatus.APPROVED,
+            OrderStatus.IN_PROGRESS,
+        ],
+    )
     def test_cancel_from_active_states(self, intermediate):
         sm = OrderStateMachine(order_id="order-070")
         # Get to the intermediate state

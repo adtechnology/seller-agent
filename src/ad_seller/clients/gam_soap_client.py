@@ -18,7 +18,7 @@ from ..models.gam import (
     GAMAudienceSegmentStatus,
     GAMAudienceSegmentType,
     GAMCompany,
-    GAMDateTime,
+    GAMCostType,
     GAMGoal,
     GAMGoalType,
     GAMLineItem,
@@ -30,7 +30,6 @@ from ..models.gam import (
     GAMSize,
     GAMTargeting,
     GAMUnitType,
-    GAMCostType,
 )
 
 
@@ -75,8 +74,7 @@ class GAMSoapClient:
             )
 
         try:
-            from googleads import ad_manager
-            from googleads import oauth2
+            from googleads import ad_manager, oauth2
 
             # Load credentials
             oauth2_client = oauth2.GoogleServiceAccountClient(
@@ -126,9 +124,7 @@ class GAMSoapClient:
         company_service = self._get_service("CompanyService")
 
         # Build filter statement
-        statement = (
-            f"WHERE type = 'ADVERTISER' AND name = '{name}' LIMIT 1"
-        )
+        statement = f"WHERE type = 'ADVERTISER' AND name = '{name}' LIMIT 1"
 
         response = company_service.getCompaniesByStatement({"query": statement})
 
@@ -248,9 +244,7 @@ class GAMSoapClient:
         action = {"xsi_type": "ApproveOrders"}
         statement = f"WHERE id = {order_id}"
 
-        result = order_service.performOrderAction(
-            action, {"query": statement}
-        )
+        order_service.performOrderAction(action, {"query": statement})
 
         # Fetch updated order
         response = order_service.getOrdersByStatement({"query": statement})
@@ -275,7 +269,9 @@ class GAMSoapClient:
             trafficker_id=str(getattr(data, "traffickerId", 0)),
             agency_id=str(agency_id) if agency_id and agency_id != 0 else None,
             status=GAMOrderStatus(getattr(data, "status", "DRAFT")),
-            external_order_id=str(external_order_id) if external_order_id and external_order_id not in (0, "") else None,
+            external_order_id=str(external_order_id)
+            if external_order_id and external_order_id not in (0, "")
+            else None,
             notes=str(notes) if notes and notes not in (0, "") else None,
             is_programmatic=getattr(data, "isProgrammatic", False),
         )
@@ -327,18 +323,18 @@ class GAMSoapClient:
         if targeting.inventory_targeting:
             targeted_units = []
             for unit in targeting.inventory_targeting.targeted_ad_units:
-                targeted_units.append({
-                    "adUnitId": int(unit.ad_unit_id),
-                    "includeDescendants": unit.include_descendants,
-                })
+                targeted_units.append(
+                    {
+                        "adUnitId": int(unit.ad_unit_id),
+                        "includeDescendants": unit.include_descendants,
+                    }
+                )
             targeting_dict["inventoryTargeting"] = {
                 "targetedAdUnits": targeted_units,
             }
 
         if targeting.custom_targeting:
-            targeting_dict["customTargeting"] = targeting.custom_targeting.model_dump(
-                by_alias=True
-            )
+            targeting_dict["customTargeting"] = targeting.custom_targeting.model_dump(by_alias=True)
 
         # Default creative sizes if not provided
         if creative_sizes is None:
@@ -346,8 +342,7 @@ class GAMSoapClient:
 
         # Build creative placeholders
         creative_placeholders = [
-            {"size": {"width": w, "height": h, "isAspectRatio": False}}
-            for w, h in creative_sizes
+            {"size": {"width": w, "height": h, "isAspectRatio": False}} for w, h in creative_sizes
         ]
 
         # Build line item
@@ -429,8 +424,14 @@ class GAMSoapClient:
                 micro_amount=getattr(cost_data, "microAmount", 0) if cost_data else 0,
             ),
             primary_goal=GAMGoal(
-                goal_type=GAMGoalType(getattr(primary_goal, "goalType", "LIFETIME") if primary_goal else "LIFETIME"),
-                unit_type=GAMUnitType(getattr(primary_goal, "unitType", "IMPRESSIONS") if primary_goal else "IMPRESSIONS"),
+                goal_type=GAMGoalType(
+                    getattr(primary_goal, "goalType", "LIFETIME") if primary_goal else "LIFETIME"
+                ),
+                unit_type=GAMUnitType(
+                    getattr(primary_goal, "unitType", "IMPRESSIONS")
+                    if primary_goal
+                    else "IMPRESSIONS"
+                ),
                 units=getattr(primary_goal, "units", -1) if primary_goal else -1,
             ),
             external_id=getattr(data, "externalId", None),
@@ -552,9 +553,7 @@ class GAMSoapClient:
         action = {"xsi_type": "ActivateAudienceSegments"}
         statement = f"WHERE id = {segment_id}"
 
-        result = segment_service.performAudienceSegmentAction(
-            action, {"query": statement}
-        )
+        result = segment_service.performAudienceSegmentAction(action, {"query": statement})
 
         return getattr(result, "numChanges", 0) > 0
 
@@ -632,7 +631,9 @@ class GAMSoapClient:
             ad_unit = GAMAdUnit(
                 id=str(getattr(data, "id", "")),
                 name=getattr(data, "name", ""),
-                parent_id=str(getattr(data, "parentId", "")) if getattr(data, "parentId", None) else None,
+                parent_id=str(getattr(data, "parentId", ""))
+                if getattr(data, "parentId", None)
+                else None,
                 ad_unit_code=getattr(data, "adUnitCode", None),
                 status=getattr(data, "status", "ACTIVE"),
                 ad_unit_sizes=sizes,

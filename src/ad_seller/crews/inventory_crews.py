@@ -7,37 +7,37 @@ These crews combine inventory specialists with functional agents
 for channel-specific operations.
 """
 
-from crewai import Crew, Task, Process
+from crewai import Crew, Process, Task
 
 from ..agents.level2 import (
-    create_display_inventory_agent,
-    create_video_inventory_agent,
     create_ctv_inventory_agent,
+    create_display_inventory_agent,
+    create_linear_tv_inventory_agent,
     create_mobile_app_inventory_agent,
     create_native_inventory_agent,
-    create_linear_tv_inventory_agent,
+    create_video_inventory_agent,
 )
 from ..agents.level3 import (
-    create_pricing_agent,
+    create_audience_validator_agent,
     create_availability_agent,
+    create_pricing_agent,
     create_proposal_review_agent,
     create_upsell_agent,
-    create_audience_validator_agent,
 )
 from ..config import get_settings
+from ..tools.audience import (
+    AudienceCapabilityTool,
+    AudienceValidationTool,
+    CoverageCalculatorTool,
+)
 from ..tools.linear import (
+    AddressableTargetingTool,
+    DMAAvailsTool,
+    LinearAvailsTool,
     LinearPricingTool,
+    MakegoodPoolTool,
     ScatterPricingTool,
     UpfrontDealCalculator,
-    LinearAvailsTool,
-    DMAAvailsTool,
-    MakegoodPoolTool,
-    AddressableTargetingTool,
-)
-from ..tools.audience import (
-    AudienceValidationTool,
-    AudienceCapabilityTool,
-    CoverageCalculatorTool,
 )
 
 
@@ -419,7 +419,12 @@ Synthesize all inputs and provide:
 - Audience validation summary
 - Prioritized upsell opportunities""",
         agent=proposal_review_agent,
-        context=[pricing_check_task, availability_check_task, audience_validation_task, upsell_task],
+        context=[
+            pricing_check_task,
+            availability_check_task,
+            audience_validation_task,
+            upsell_task,
+        ],
     )
 
     return Crew(

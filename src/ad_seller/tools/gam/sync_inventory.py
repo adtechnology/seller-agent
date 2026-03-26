@@ -54,8 +54,9 @@ class SyncGAMInventoryTool(BaseTool):
             )
 
         try:
-            from ...clients import GAMRestClient
             import asyncio
+
+            from ...clients import GAMRestClient
 
             async def sync_inventory():
                 synced_count = 0
@@ -89,26 +90,22 @@ class SyncGAMInventoryTool(BaseTool):
                 return synced_count, updated_count, all_units
 
             # Run async function
-            synced, updated, units = asyncio.get_event_loop().run_until_complete(
-                sync_inventory()
-            )
+            synced, updated, units = asyncio.get_event_loop().run_until_complete(sync_inventory())
 
             # Format results
-            lines = [f"GAM Inventory Sync Complete:\n"]
+            lines = ["GAM Inventory Sync Complete:\n"]
             lines.append(f"- Total ad units found: {synced}")
             lines.append(f"- New products created: {synced}")  # Simplified
             lines.append(f"- Existing products updated: {updated}")
 
             if update_pricing:
-                lines.append(f"- Pricing information synced: Yes")
+                lines.append("- Pricing information synced: Yes")
 
             # Sample of synced units
             if units:
                 lines.append("\nSample of synced ad units:")
                 for unit in units[:5]:
-                    sizes = ", ".join(
-                        f"{s.width}x{s.height}" for s in (unit.ad_unit_sizes or [])
-                    )
+                    sizes = ", ".join(f"{s.width}x{s.height}" for s in (unit.ad_unit_sizes or []))
                     lines.append(f"  - {unit.name}: {sizes or 'No sizes'}")
                 if len(units) > 5:
                     lines.append(f"  ... and {len(units) - 5} more")

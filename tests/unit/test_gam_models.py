@@ -3,18 +3,16 @@
 
 """Unit tests for GAM models."""
 
-import pytest
 from datetime import datetime
 
 from ad_seller.models.gam import (
+    AudienceSegmentMapping,
     GAMAdUnit,
     GAMAdUnitSize,
     GAMAdUnitTargeting,
     GAMAudienceSegment,
-    GAMAudienceSegmentStatus,
     GAMAudienceSegmentType,
     GAMBookingResult,
-    GAMCompany,
     GAMCostType,
     GAMCustomCriteriaSet,
     GAMDateTime,
@@ -22,7 +20,6 @@ from ad_seller.models.gam import (
     GAMGoalType,
     GAMInventoryTargeting,
     GAMLineItem,
-    GAMLineItemStatus,
     GAMLineItemType,
     GAMMoney,
     GAMOrder,
@@ -32,7 +29,6 @@ from ad_seller.models.gam import (
     GAMSize,
     GAMTargeting,
     GAMUnitType,
-    AudienceSegmentMapping,
 )
 
 
@@ -254,9 +250,7 @@ class TestGAMTargeting:
         """Test complete targeting configuration."""
         targeting = GAMTargeting(
             inventory_targeting=GAMInventoryTargeting(
-                targeted_ad_units=[
-                    GAMAdUnitTargeting(ad_unit_id="123")
-                ]
+                targeted_ad_units=[GAMAdUnitTargeting(ad_unit_id="123")]
             ),
             custom_targeting=GAMCustomCriteriaSet(
                 logical_operator="AND",

@@ -3,10 +3,10 @@
 
 """Event bus for human-in-the-loop workflow control."""
 
-from .models import Event, EventType, ApprovalRequest, ApprovalResponse, ApprovalStatus
-from .bus import EventBus, get_event_bus, close_event_bus
 from .approval import ApprovalGate
+from .bus import EventBus, close_event_bus, get_event_bus
 from .helpers import emit_event
+from .models import ApprovalRequest, ApprovalResponse, ApprovalStatus, Event, EventType
 
 __all__ = [
     "Event",

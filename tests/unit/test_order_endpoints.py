@@ -21,11 +21,10 @@ for _mod_name in _broken_flows:
         setattr(_stub, _cls_name, type(_cls_name, (), {}))
         sys.modules[_mod_name] = _stub
 
-import httpx
-from httpx import ASGITransport
+import httpx  # noqa: E402
+from httpx import ASGITransport  # noqa: E402
 
-from ad_seller.interfaces.api.main import app, _get_optional_api_key_record
-
+from ad_seller.interfaces.api.main import _get_optional_api_key_record, app  # noqa: E402
 
 # =============================================================================
 # Fixtures
@@ -38,13 +37,9 @@ def mock_storage():
     storage = AsyncMock()
     storage.get = AsyncMock(side_effect=lambda k: store.get(k))
     storage.set = AsyncMock(side_effect=lambda k, v, ttl=None: store.__setitem__(k, v))
-    storage.delete = AsyncMock(
-        side_effect=lambda k: (store.pop(k, None) is not None)
-    )
+    storage.delete = AsyncMock(side_effect=lambda k: (store.pop(k, None) is not None))
     storage.keys = AsyncMock(
-        side_effect=lambda pattern="*": [
-            k for k in store if k.startswith(pattern.rstrip("*"))
-        ]
+        side_effect=lambda pattern="*": [k for k in store if k.startswith(pattern.rstrip("*"))]
     )
     storage.get_order = AsyncMock(side_effect=lambda oid: store.get(f"order:{oid}"))
     storage.set_order = AsyncMock(
@@ -52,7 +47,8 @@ def mock_storage():
     )
     storage.list_orders = AsyncMock(
         side_effect=lambda filters=None: [
-            v for k, v in store.items()
+            v
+            for k, v in store.items()
             if k.startswith("order:")
             and (not filters or not filters.get("status") or v.get("status") == filters["status"])
         ]
@@ -76,7 +72,6 @@ def client(mock_storage):
 
 
 class TestCreateOrder:
-
     async def test_create_order_returns_draft(self, client, mock_storage):
         with patch("ad_seller.storage.factory.get_storage", return_value=mock_storage):
             resp = await client.post("/api/v1/orders", json={})
@@ -90,11 +85,14 @@ class TestCreateOrder:
 
     async def test_create_order_with_deal_id(self, client, mock_storage):
         with patch("ad_seller.storage.factory.get_storage", return_value=mock_storage):
-            resp = await client.post("/api/v1/orders", json={
-                "deal_id": "DEMO-ABC123",
-                "quote_id": "qt-test456",
-                "metadata": {"campaign": "spring-2026"},
-            })
+            resp = await client.post(
+                "/api/v1/orders",
+                json={
+                    "deal_id": "DEMO-ABC123",
+                    "quote_id": "qt-test456",
+                    "metadata": {"campaign": "spring-2026"},
+                },
+            )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -118,7 +116,6 @@ class TestCreateOrder:
 
 
 class TestListOrders:
-
     async def test_list_empty(self, client, mock_storage):
         with patch("ad_seller.storage.factory.get_storage", return_value=mock_storage):
             resp = await client.get("/api/v1/orders")
@@ -141,9 +138,13 @@ class TestListOrders:
             r1 = await client.post("/api/v1/orders", json={})
             oid = r1.json()["order_id"]
             # Transition one to submitted
-            await client.post(f"/api/v1/orders/{oid}/transition", json={
-                "to_status": "submitted", "actor": "test",
-            })
+            await client.post(
+                f"/api/v1/orders/{oid}/transition",
+                json={
+                    "to_status": "submitted",
+                    "actor": "test",
+                },
+            )
             # Create another that stays draft
             await client.post("/api/v1/orders", json={})
 
@@ -160,7 +161,6 @@ class TestListOrders:
 
 
 class TestGetOrder:
-
     async def test_retrieve_order(self, client, mock_storage):
         with patch("ad_seller.storage.factory.get_storage", return_value=mock_storage):
             create_resp = await client.post("/api/v1/orders", json={"deal_id": "DEMO-X"})
@@ -185,7 +185,6 @@ class TestGetOrder:
 
 
 class TestGetOrderHistory:
-
     async def test_new_order_has_empty_history(self, client, mock_storage):
         with patch("ad_seller.storage.factory.get_storage", return_value=mock_storage):
             create_resp = await client.post("/api/v1/orders", json={})
@@ -204,12 +203,20 @@ class TestGetOrderHistory:
             create_resp = await client.post("/api/v1/orders", json={})
             order_id = create_resp.json()["order_id"]
 
-            await client.post(f"/api/v1/orders/{order_id}/transition", json={
-                "to_status": "submitted", "actor": "agent:buyer",
-            })
-            await client.post(f"/api/v1/orders/{order_id}/transition", json={
-                "to_status": "approved", "actor": "human:ops",
-            })
+            await client.post(
+                f"/api/v1/orders/{order_id}/transition",
+                json={
+                    "to_status": "submitted",
+                    "actor": "agent:buyer",
+                },
+            )
+            await client.post(
+                f"/api/v1/orders/{order_id}/transition",
+                json={
+                    "to_status": "approved",
+                    "actor": "human:ops",
+                },
+            )
 
             resp = await client.get(f"/api/v1/orders/{order_id}/history")
 
@@ -237,17 +244,19 @@ class TestGetOrderHistory:
 
 
 class TestTransitionOrder:
-
     async def test_valid_transition(self, client, mock_storage):
         with patch("ad_seller.storage.factory.get_storage", return_value=mock_storage):
             create_resp = await client.post("/api/v1/orders", json={})
             order_id = create_resp.json()["order_id"]
 
-            resp = await client.post(f"/api/v1/orders/{order_id}/transition", json={
-                "to_status": "submitted",
-                "actor": "agent:buyer-001",
-                "reason": "Ready for review",
-            })
+            resp = await client.post(
+                f"/api/v1/orders/{order_id}/transition",
+                json={
+                    "to_status": "submitted",
+                    "actor": "agent:buyer-001",
+                    "reason": "Ready for review",
+                },
+            )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -263,9 +272,12 @@ class TestTransitionOrder:
             create_resp = await client.post("/api/v1/orders", json={})
             order_id = create_resp.json()["order_id"]
 
-            resp = await client.post(f"/api/v1/orders/{order_id}/transition", json={
-                "to_status": "completed",
-            })
+            resp = await client.post(
+                f"/api/v1/orders/{order_id}/transition",
+                json={
+                    "to_status": "completed",
+                },
+            )
 
         assert resp.status_code == 409
         data = resp.json()["detail"]
@@ -278,9 +290,12 @@ class TestTransitionOrder:
             create_resp = await client.post("/api/v1/orders", json={})
             order_id = create_resp.json()["order_id"]
 
-            resp = await client.post(f"/api/v1/orders/{order_id}/transition", json={
-                "to_status": "banana",
-            })
+            resp = await client.post(
+                f"/api/v1/orders/{order_id}/transition",
+                json={
+                    "to_status": "banana",
+                },
+            )
 
         assert resp.status_code == 400
         assert resp.json()["detail"]["error"] == "invalid_status"
@@ -288,9 +303,12 @@ class TestTransitionOrder:
 
     async def test_transition_not_found(self, client, mock_storage):
         with patch("ad_seller.storage.factory.get_storage", return_value=mock_storage):
-            resp = await client.post("/api/v1/orders/ORD-NOPE/transition", json={
-                "to_status": "submitted",
-            })
+            resp = await client.post(
+                "/api/v1/orders/ORD-NOPE/transition",
+                json={
+                    "to_status": "submitted",
+                },
+            )
 
         assert resp.status_code == 404
 
@@ -310,9 +328,13 @@ class TestTransitionOrder:
                 ("completed", "system"),
             ]
             for status, actor in transitions:
-                r = await client.post(f"/api/v1/orders/{oid}/transition", json={
-                    "to_status": status, "actor": actor,
-                })
+                r = await client.post(
+                    f"/api/v1/orders/{oid}/transition",
+                    json={
+                        "to_status": status,
+                        "actor": actor,
+                    },
+                )
                 assert r.status_code == 200, f"Failed at {status}: {r.json()}"
 
             # Verify final state
@@ -325,14 +347,21 @@ class TestTransitionOrder:
 
     async def test_transition_preserves_extra_fields(self, client, mock_storage):
         with patch("ad_seller.storage.factory.get_storage", return_value=mock_storage):
-            r = await client.post("/api/v1/orders", json={
-                "deal_id": "DEMO-KEEP", "metadata": {"important": True},
-            })
+            r = await client.post(
+                "/api/v1/orders",
+                json={
+                    "deal_id": "DEMO-KEEP",
+                    "metadata": {"important": True},
+                },
+            )
             oid = r.json()["order_id"]
 
-            await client.post(f"/api/v1/orders/{oid}/transition", json={
-                "to_status": "submitted",
-            })
+            await client.post(
+                f"/api/v1/orders/{oid}/transition",
+                json={
+                    "to_status": "submitted",
+                },
+            )
 
             r = await client.get(f"/api/v1/orders/{oid}")
 

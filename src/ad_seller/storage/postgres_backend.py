@@ -115,9 +115,7 @@ class PostgresBackend(StorageBackend):
         """Delete a key. Returns True if key existed."""
         self._ensure_pool()
         async with self._pool.acquire() as conn:
-            result = await conn.execute(
-                "DELETE FROM kv_store WHERE key = $1", key
-            )
+            result = await conn.execute("DELETE FROM kv_store WHERE key = $1", key)
             # asyncpg returns 'DELETE N' where N is row count
             return result != "DELETE 0"
 

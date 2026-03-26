@@ -14,13 +14,11 @@ from ..models.gam import (
     GAMAdUnit,
     GAMAdUnitSize,
     GAMLineItem,
+    GAMMoney,
     GAMOrder,
     GAMPrivateAuction,
     GAMPrivateAuctionDeal,
-    GAMMoney,
     GAMTargeting,
-    GAMInventoryTargeting,
-    GAMAdUnitTargeting,
 )
 
 
@@ -127,11 +125,15 @@ class GAMRestClient:
         self._ensure_connected()
 
         parent = f"networks/{self.network_code}"
-        request = self._service.networks().adUnits().list(
-            parent=parent,
-            pageSize=min(page_size, 100),
-            pageToken=page_token,
-            filter=filter_str,
+        request = (
+            self._service.networks()
+            .adUnits()
+            .list(
+                parent=parent,
+                pageSize=min(page_size, 100),
+                pageToken=page_token,
+                filter=filter_str,
+            )
         )
 
         response = request.execute()
@@ -184,7 +186,9 @@ class GAMRestClient:
         return GAMAdUnit(
             id=ad_unit_id,
             name=data.get("displayName", ""),
-            parent_id=data.get("parentAdUnit", "").split("/")[-1] if data.get("parentAdUnit") else None,
+            parent_id=data.get("parentAdUnit", "").split("/")[-1]
+            if data.get("parentAdUnit")
+            else None,
             description=data.get("description"),
             ad_unit_code=data.get("adUnitCode"),
             status=data.get("status", "ACTIVE"),
@@ -215,11 +219,15 @@ class GAMRestClient:
         self._ensure_connected()
 
         parent = f"networks/{self.network_code}"
-        request = self._service.networks().orders().list(
-            parent=parent,
-            pageSize=min(page_size, 100),
-            pageToken=page_token,
-            filter=filter_str,
+        request = (
+            self._service.networks()
+            .orders()
+            .list(
+                parent=parent,
+                pageSize=min(page_size, 100),
+                pageToken=page_token,
+                filter=filter_str,
+            )
         )
 
         response = request.execute()
@@ -293,11 +301,15 @@ class GAMRestClient:
 
         combined_filter = " AND ".join(filters) if filters else None
 
-        request = self._service.networks().lineItems().list(
-            parent=parent,
-            pageSize=min(page_size, 100),
-            pageToken=page_token,
-            filter=combined_filter,
+        request = (
+            self._service.networks()
+            .lineItems()
+            .list(
+                parent=parent,
+                pageSize=min(page_size, 100),
+                pageToken=page_token,
+                filter=combined_filter,
+            )
         )
 
         response = request.execute()
@@ -365,10 +377,14 @@ class GAMRestClient:
         self._ensure_connected()
 
         parent = f"networks/{self.network_code}"
-        request = self._service.networks().privateAuctions().list(
-            parent=parent,
-            pageSize=min(page_size, 100),
-            pageToken=page_token,
+        request = (
+            self._service.networks()
+            .privateAuctions()
+            .list(
+                parent=parent,
+                pageSize=min(page_size, 100),
+                pageToken=page_token,
+            )
         )
 
         response = request.execute()
@@ -424,10 +440,7 @@ class GAMRestClient:
             body["description"] = description
 
         response = (
-            self._service.networks()
-            .privateAuctions()
-            .create(parent=parent, body=body)
-            .execute()
+            self._service.networks().privateAuctions().create(parent=parent, body=body).execute()
         )
 
         return GAMPrivateAuction(
@@ -464,10 +477,14 @@ class GAMRestClient:
         else:
             parent = f"networks/{self.network_code}"
 
-        request = self._service.networks().privateAuctionDeals().list(
-            parent=parent,
-            pageSize=min(page_size, 100),
-            pageToken=page_token,
+        request = (
+            self._service.networks()
+            .privateAuctionDeals()
+            .list(
+                parent=parent,
+                pageSize=min(page_size, 100),
+                pageToken=page_token,
+            )
         )
 
         response = request.execute()
@@ -632,10 +649,7 @@ class GAMRestClient:
 
         # Create report job
         response = (
-            self._service.networks()
-            .reports()
-            .create(parent=parent, body=report_query)
-            .execute()
+            self._service.networks().reports().create(parent=parent, body=report_query).execute()
         )
 
         return response

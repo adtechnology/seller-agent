@@ -140,9 +140,7 @@ class StorageBackend(ABC):
                 sessions.append(session)
         return sessions
 
-    async def add_session_to_buyer_index(
-        self, session_id: str, buyer_pricing_key: str
-    ) -> None:
+    async def add_session_to_buyer_index(self, session_id: str, buyer_pricing_key: str) -> None:
         """Add a session to the buyer index."""
         index_key = f"session_index:buyer:{buyer_pricing_key}"
         existing = await self.get(index_key) or []
@@ -198,9 +196,7 @@ class StorageBackend(ABC):
         """Get a quote by ID."""
         return await self.get(f"quote:{quote_id}")
 
-    async def set_quote(
-        self, quote_id: str, quote_data: dict, ttl: int = 86400
-    ) -> None:
+    async def set_quote(self, quote_id: str, quote_data: dict, ttl: int = 86400) -> None:
         """Store a quote with TTL (default 24 hours)."""
         await self.set(f"quote:{quote_id}", quote_data, ttl=ttl)
 
@@ -215,9 +211,10 @@ class StorageBackend(ABC):
             if filters:
                 if "status" in filters and quote.get("status") != filters["status"]:
                     continue
-                if "product_id" in filters and quote.get("product", {}).get(
-                    "product_id"
-                ) != filters["product_id"]:
+                if (
+                    "product_id" in filters
+                    and quote.get("product", {}).get("product_id") != filters["product_id"]
+                ):
                     continue
             quotes.append(quote)
         return quotes

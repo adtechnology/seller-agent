@@ -7,7 +7,6 @@ Implements the A2A protocol for conversational interactions with
 the seller agent via JSON-RPC 2.0.
 """
 
-import json
 import uuid
 from typing import Any, Optional
 
@@ -35,9 +34,7 @@ class A2AResponse(BaseModel):
     @property
     def text(self) -> str:
         """Get concatenated text content from response."""
-        return "\n".join(
-            part.content for part in self.parts if part.type == "text"
-        )
+        return "\n".join(part.content for part in self.parts if part.type == "text")
 
     @property
     def data(self) -> list[Any]:

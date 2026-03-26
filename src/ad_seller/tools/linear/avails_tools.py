@@ -17,7 +17,6 @@ from typing import Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-
 # =============================================================================
 # LinearAvailsTool — National avails
 # =============================================================================
@@ -244,7 +243,9 @@ class MakegoodPoolTool(BaseTool):
             lines.append(f"  {i}. {net} / {dp}")
             lines.append(f"     Available: {avail} units")
             lines.append(f"     Audience Equivalence: {score:.0%}")
-            recommend = "RECOMMENDED" if score >= 0.85 else "ACCEPTABLE" if score >= 0.70 else "MARGINAL"
+            recommend = (
+                "RECOMMENDED" if score >= 0.85 else "ACCEPTABLE" if score >= 0.70 else "MARGINAL"
+            )
             lines.append(f"     Status: {recommend}")
 
         return "\n".join(lines).strip()

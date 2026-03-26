@@ -184,11 +184,7 @@ class StorageEventBus(EventBus):
             ids = await self._storage.get(f"event_index:type:{event_type}") or []
         else:
             keys = await self._storage.keys("event:*")
-            ids = [
-                k.replace("event:", "", 1)
-                for k in keys
-                if not k.startswith("event_index:")
-            ]
+            ids = [k.replace("event:", "", 1) for k in keys if not k.startswith("event_index:")]
 
         events = []
         for eid in ids[-limit:]:
@@ -220,6 +216,7 @@ async def get_event_bus() -> EventBus:
 
     try:
         from ..config import get_settings
+
         settings = get_settings()
         if not settings.event_bus_enabled:
             _event_bus_instance = InMemoryEventBus()
@@ -229,6 +226,7 @@ async def get_event_bus() -> EventBus:
 
     try:
         from ..storage.factory import get_storage
+
         storage = await get_storage()
         _event_bus_instance = StorageEventBus(storage)
     except Exception as e:

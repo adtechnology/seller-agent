@@ -3,7 +3,7 @@
 
 """Get GAM Pricing Tool - Retrieve pricing information for ad units."""
 
-from typing import Optional, Type
+from typing import Type
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -53,8 +53,9 @@ class GetGAMPricingTool(BaseTool):
             )
 
         try:
-            from ...clients import GAMRestClient
             import asyncio
+
+            from ...clients import GAMRestClient
 
             async def fetch_pricing():
                 async with GAMRestClient(
@@ -85,9 +86,7 @@ class GetGAMPricingTool(BaseTool):
                 lines.append(f"  - Private Auction Floor: ${default_floor:.2f} CPM")
 
             # Ad unit details
-            sizes = ", ".join(
-                f"{s.width}x{s.height}" for s in (ad_unit.ad_unit_sizes or [])
-            )
+            sizes = ", ".join(f"{s.width}x{s.height}" for s in (ad_unit.ad_unit_sizes or []))
             if sizes:
                 lines.append(f"\nAd Sizes: {sizes}")
 

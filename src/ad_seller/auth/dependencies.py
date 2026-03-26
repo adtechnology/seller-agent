@@ -24,7 +24,7 @@ Usage in endpoints::
 import logging
 from typing import Optional
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Header, HTTPException
 
 from ..models.api_key import ApiKeyRecord
 

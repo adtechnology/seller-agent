@@ -3,15 +3,15 @@
 
 """Pricing Lookup Tool - Get pricing for products based on buyer context."""
 
-from typing import Any, Optional, Type
+from typing import Optional, Type
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
 from ...engines.pricing_rules_engine import PricingRulesEngine
-from ...models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
-from ...models.pricing_tiers import TieredPricingConfig
+from ...models.buyer_identity import BuyerContext, BuyerIdentity
 from ...models.core import DealType
+from ...models.pricing_tiers import TieredPricingConfig
 
 
 class PricingLookupInput(BaseModel):

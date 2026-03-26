@@ -4,7 +4,6 @@
 """SQLite storage backend implementation."""
 
 import json
-import sqlite3
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -29,7 +28,7 @@ class SQLiteBackend(StorageBackend):
         """
         # Extract path from URL
         if database_url.startswith("sqlite:///"):
-            self.db_path = database_url[len("sqlite:///"):]
+            self.db_path = database_url[len("sqlite:///") :]
         else:
             self.db_path = database_url
 
@@ -72,7 +71,7 @@ class SQLiteBackend(StorageBackend):
             current_time = time.time()
             await self._connection.execute(
                 "DELETE FROM kv_store WHERE expires_at IS NOT NULL AND expires_at < ?",
-                (current_time,)
+                (current_time,),
             )
             await self._connection.commit()
 
@@ -85,8 +84,7 @@ class SQLiteBackend(StorageBackend):
         await self._cleanup_expired()
 
         async with self._connection.execute(
-            "SELECT value, expires_at FROM kv_store WHERE key = ?",
-            (key,)
+            "SELECT value, expires_at FROM kv_store WHERE key = ?", (key,)
         ) as cursor:
             row = await cursor.fetchone()
 
@@ -115,7 +113,7 @@ class SQLiteBackend(StorageBackend):
             INSERT OR REPLACE INTO kv_store (key, value, expires_at)
             VALUES (?, ?, ?)
             """,
-            (key, json_value, expires_at)
+            (key, json_value, expires_at),
         )
         await self._connection.commit()
 
@@ -124,10 +122,7 @@ class SQLiteBackend(StorageBackend):
         if not self._connection:
             raise RuntimeError("Storage not connected. Call connect() first.")
 
-        async with self._connection.execute(
-            "DELETE FROM kv_store WHERE key = ?",
-            (key,)
-        ) as cursor:
+        async with self._connection.execute("DELETE FROM kv_store WHERE key = ?", (key,)) as cursor:
             await self._connection.commit()
             return cursor.rowcount > 0
 
@@ -141,7 +136,7 @@ class SQLiteBackend(StorageBackend):
 
         async with self._connection.execute(
             "SELECT 1 FROM kv_store WHERE key = ? AND (expires_at IS NULL OR expires_at > ?)",
-            (key, time.time())
+            (key, time.time()),
         ) as cursor:
             row = await cursor.fetchone()
             return row is not None
@@ -164,7 +159,7 @@ class SQLiteBackend(StorageBackend):
 
         async with self._connection.execute(
             "SELECT key FROM kv_store WHERE key LIKE ? AND (expires_at IS NULL OR expires_at > ?)",
-            (sql_pattern, time.time())
+            (sql_pattern, time.time()),
         ) as cursor:
             rows = await cursor.fetchall()
             return [row[0] for row in rows]

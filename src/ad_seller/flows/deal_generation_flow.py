@@ -13,18 +13,18 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from crewai.flow.flow import Flow, start, listen
+from crewai.flow.flow import Flow, listen, start
 
+from ..clients import UnifiedClient
+from ..config import get_settings
+from ..events.helpers import emit_event
+from ..events.models import EventType
+from ..models.core import DealType, PricingModel
 from ..models.flow_state import (
     DealOutput,
     ExecutionStatus,
     SellerFlowState,
 )
-from ..models.core import DealType, PricingModel
-from ..clients import UnifiedClient, Protocol
-from ..config import get_settings
-from ..events.helpers import emit_event
-from ..events.models import EventType
 
 
 class DealGenerationState(SellerFlowState):
@@ -75,9 +75,7 @@ class DealGenerationFlow(Flow[DealGenerationState]):
             # Allow if proposal_data indicates acceptance
             status = self.state.proposal_data.get("status", "")
             if status != "accepted":
-                self.state.errors.append(
-                    f"Proposal {self.state.proposal_id} is not accepted"
-                )
+                self.state.errors.append(f"Proposal {self.state.proposal_id} is not accepted")
                 self.state.status = ExecutionStatus.FAILED
 
     @listen(validate_proposal)
@@ -111,7 +109,9 @@ class DealGenerationFlow(Flow[DealGenerationState]):
             return
 
         # Generate Deal ID with seller prefix
-        seller_prefix = self.state.seller_organization_id[:4] if self.state.seller_organization_id else "SELL"
+        seller_prefix = (
+            self.state.seller_organization_id[:4] if self.state.seller_organization_id else "SELL"
+        )
         deal_id = f"{seller_prefix}-{uuid.uuid4().hex[:12].upper()}"
 
         self.state.proposal_data["generated_deal_id"] = deal_id
@@ -205,9 +205,7 @@ class DealGenerationFlow(Flow[DealGenerationState]):
                 )
 
                 if result.success:
-                    self.state.deal_output.ad_server_deal_id = result.data.get(
-                        "executionorderid"
-                    )
+                    self.state.deal_output.ad_server_deal_id = result.data.get("executionorderid")
 
                 # Emit deal.registered event
                 await emit_event(
@@ -248,7 +246,9 @@ class DealGenerationFlow(Flow[DealGenerationState]):
         """
         self.state.proposal_id = proposal_id
         self.state.proposal_data = proposal_data
-        self.state.seller_organization_id = seller_organization_id or self._settings.seller_organization_id or ""
+        self.state.seller_organization_id = (
+            seller_organization_id or self._settings.seller_organization_id or ""
+        )
         self.state.accepted_proposals.append(proposal_id)  # Assume accepted
 
         # Run the flow

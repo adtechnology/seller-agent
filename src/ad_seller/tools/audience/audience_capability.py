@@ -3,7 +3,7 @@
 
 """Audience Capability Tool - Report audience capabilities for products."""
 
-from typing import Any, Optional, Type
+from typing import Optional, Type
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -14,9 +14,7 @@ from ...models.ucp import AudienceCapability, SignalType
 class AudienceCapabilityInput(BaseModel):
     """Input schema for audience capability tool."""
 
-    product_id: str = Field(
-        description="Product ID to report capabilities for"
-    )
+    product_id: str = Field(description="Product ID to report capabilities for")
     inventory_type: Optional[str] = Field(
         default=None,
         description="Inventory type: display, video, ctv, mobile_app, native",

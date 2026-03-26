@@ -99,9 +99,7 @@ class NegotiationRound(BaseModel):
 class NegotiationHistory(BaseModel):
     """Full negotiation state, passed in to the stateless engine."""
 
-    negotiation_id: str = Field(
-        default_factory=lambda: f"neg-{uuid.uuid4().hex[:8]}"
-    )
+    negotiation_id: str = Field(default_factory=lambda: f"neg-{uuid.uuid4().hex[:8]}")
     proposal_id: str
     product_id: str
     buyer_tier: AccessTier

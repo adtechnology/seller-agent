@@ -10,14 +10,13 @@ from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
 from ...config import get_settings
-from ...models.core import DealType, PricingModel
 from ...models.gam import (
+    GAMAdUnitTargeting,
     GAMBookingResult,
     GAMCostType,
     GAMGoal,
     GAMGoalType,
     GAMInventoryTargeting,
-    GAMAdUnitTargeting,
     GAMLineItemType,
     GAMMoney,
     GAMTargeting,
@@ -234,7 +233,7 @@ class BookDealInGAMTool(BaseTool):
                 )
 
                 # Format booking result
-                result = GAMBookingResult(
+                GAMBookingResult(
                     success=True,
                     order_id=order.id,
                     line_item_id=line_item.id,
@@ -244,7 +243,7 @@ class BookDealInGAMTool(BaseTool):
                 )
 
                 lines = [
-                    f"Deal booked successfully in GAM:\n",
+                    "Deal booked successfully in GAM:\n",
                     f"- OpenDirect Deal ID: {deal_id}",
                     f"- Deal Type: {deal_type}",
                     f"- GAM Order ID: {order.id}",
@@ -262,8 +261,7 @@ class BookDealInGAMTool(BaseTool):
                     lines.append(f"- Audience segments: {len(audience_segment_ids)}")
 
                 lines.append(
-                    f"\nNote: Order is in DRAFT status. Approve the order in GAM "
-                    f"to start delivery."
+                    "\nNote: Order is in DRAFT status. Approve the order in GAM to start delivery."
                 )
 
                 return "\n".join(lines)

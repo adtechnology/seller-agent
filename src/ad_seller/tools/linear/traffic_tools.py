@@ -23,7 +23,6 @@ from typing import Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-
 # =============================================================================
 # LinearOrderTool — TIP-compatible IO generation
 # =============================================================================
@@ -121,8 +120,8 @@ Linear TV Order Generated — {order_id}
 Deal: {deal_id}
 Advertiser: {advertiser_name}
 Flight: {flight_start} to {flight_end}
-Networks: {', '.join(networks)}
-Dayparts: {', '.join(dayparts)}
+Networks: {", ".join(networks)}
+Dayparts: {", ".join(dayparts)}
 Total Spots: {total_spots} × :{spot_length}
 Total Value: ${total_value:,.2f}
 

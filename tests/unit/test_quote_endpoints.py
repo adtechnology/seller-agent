@@ -26,13 +26,12 @@ for _mod_name in _broken_flows:
         setattr(_stub, _cls_name, type(_cls_name, (), {}))
         sys.modules[_mod_name] = _stub
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # noqa: E402
 
-import httpx
-from httpx import ASGITransport
+import httpx  # noqa: E402
+from httpx import ASGITransport  # noqa: E402
 
-from ad_seller.interfaces.api.main import app, _get_optional_api_key_record
-
+from ad_seller.interfaces.api.main import _get_optional_api_key_record, app  # noqa: E402
 
 # =============================================================================
 # Helpers
@@ -49,8 +48,8 @@ def _mock_product_setup_flow(products_dict):
 
 
 def _make_product(**overrides):
-    from ad_seller.models.flow_state import ProductDefinition
     from ad_seller.models.core import DealType, PricingModel
+    from ad_seller.models.flow_state import ProductDefinition
 
     defaults = dict(
         product_id="ctv-premium-sports",
@@ -102,20 +101,24 @@ def client(mock_storage):
 
 
 class TestCreateQuote:
-
     async def test_happy_path_pd_quote(self, client, mock_storage):
         with (
-            patch("ad_seller.flows.ProductSetupFlow",
-                  return_value=_mock_product_setup_flow(_products())),
+            patch(
+                "ad_seller.flows.ProductSetupFlow",
+                return_value=_mock_product_setup_flow(_products()),
+            ),
             patch("ad_seller.storage.factory.get_storage", return_value=mock_storage),
         ):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports",
-                "deal_type": "PD",
-                "impressions": 5000000,
-                "flight_start": "2026-04-01",
-                "flight_end": "2026-04-30",
-            })
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "PD",
+                    "impressions": 5000000,
+                    "flight_start": "2026-04-01",
+                    "flight_end": "2026-04-30",
+                },
+            )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -132,47 +135,62 @@ class TestCreateQuote:
 
     async def test_pg_quote_sets_guaranteed_true(self, client, mock_storage):
         with (
-            patch("ad_seller.flows.ProductSetupFlow",
-                  return_value=_mock_product_setup_flow(_products())),
+            patch(
+                "ad_seller.flows.ProductSetupFlow",
+                return_value=_mock_product_setup_flow(_products()),
+            ),
             patch("ad_seller.storage.factory.get_storage", return_value=mock_storage),
         ):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports",
-                "deal_type": "PG",
-                "impressions": 5000000,
-            })
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "PG",
+                    "impressions": 5000000,
+                },
+            )
 
         assert resp.status_code == 200
         assert resp.json()["terms"]["guaranteed"] is True
 
     async def test_target_cpm_accepted_when_above_floor(self, client, mock_storage):
         with (
-            patch("ad_seller.flows.ProductSetupFlow",
-                  return_value=_mock_product_setup_flow(_products())),
+            patch(
+                "ad_seller.flows.ProductSetupFlow",
+                return_value=_mock_product_setup_flow(_products()),
+            ),
             patch("ad_seller.storage.factory.get_storage", return_value=mock_storage),
         ):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports",
-                "deal_type": "PD",
-                "impressions": 1000000,
-                "target_cpm": 32.00,
-            })
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "PD",
+                    "impressions": 1000000,
+                    "target_cpm": 32.00,
+                },
+            )
 
         assert resp.status_code == 200
         assert resp.json()["pricing"]["final_cpm"] == 32.0
 
     async def test_target_cpm_rejected_below_floor(self, client, mock_storage):
         with (
-            patch("ad_seller.flows.ProductSetupFlow",
-                  return_value=_mock_product_setup_flow(_products())),
+            patch(
+                "ad_seller.flows.ProductSetupFlow",
+                return_value=_mock_product_setup_flow(_products()),
+            ),
             patch("ad_seller.storage.factory.get_storage", return_value=mock_storage),
         ):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports",
-                "deal_type": "PD",
-                "impressions": 1000000,
-                "target_cpm": 0.50,
-            })
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "PD",
+                    "impressions": 1000000,
+                    "target_cpm": 0.50,
+                },
+            )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -181,20 +199,25 @@ class TestCreateQuote:
 
     async def test_buyer_identity_affects_tier(self, client, mock_storage):
         with (
-            patch("ad_seller.flows.ProductSetupFlow",
-                  return_value=_mock_product_setup_flow(_products())),
+            patch(
+                "ad_seller.flows.ProductSetupFlow",
+                return_value=_mock_product_setup_flow(_products()),
+            ),
             patch("ad_seller.storage.factory.get_storage", return_value=mock_storage),
         ):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports",
-                "deal_type": "PD",
-                "buyer_identity": {
-                    "seat_id": "seat-ttd-12345",
-                    "agency_id": "agency-groupm-001",
-                    "advertiser_id": "adv-nike-001",
-                    "dsp_platform": "ttd",
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "PD",
+                    "buyer_identity": {
+                        "seat_id": "seat-ttd-12345",
+                        "agency_id": "agency-groupm-001",
+                        "advertiser_id": "adv-nike-001",
+                        "dsp_platform": "ttd",
+                    },
                 },
-            })
+            )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -204,40 +227,59 @@ class TestCreateQuote:
     # Error cases
 
     async def test_product_not_found(self, client, mock_storage):
-        with patch("ad_seller.flows.ProductSetupFlow",
-                   return_value=_mock_product_setup_flow(_products())):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "nonexistent", "deal_type": "PD",
-            })
+        with patch(
+            "ad_seller.flows.ProductSetupFlow", return_value=_mock_product_setup_flow(_products())
+        ):
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "nonexistent",
+                    "deal_type": "PD",
+                },
+            )
         assert resp.status_code == 404
         assert resp.json()["detail"]["error"] == "product_not_found"
 
     async def test_invalid_deal_type(self, client, mock_storage):
-        with patch("ad_seller.flows.ProductSetupFlow",
-                   return_value=_mock_product_setup_flow(_products())):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports", "deal_type": "INVALID",
-            })
+        with patch(
+            "ad_seller.flows.ProductSetupFlow", return_value=_mock_product_setup_flow(_products())
+        ):
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "INVALID",
+                },
+            )
         assert resp.status_code == 400
         assert resp.json()["detail"]["error"] == "invalid_deal_type"
 
     async def test_pg_without_impressions(self, client, mock_storage):
-        with patch("ad_seller.flows.ProductSetupFlow",
-                   return_value=_mock_product_setup_flow(_products())):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports", "deal_type": "PG",
-            })
+        with patch(
+            "ad_seller.flows.ProductSetupFlow", return_value=_mock_product_setup_flow(_products())
+        ):
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "PG",
+                },
+            )
         assert resp.status_code == 400
         assert resp.json()["detail"]["error"] == "pg_requires_impressions"
 
     async def test_below_minimum_impressions(self, client, mock_storage):
-        with patch("ad_seller.flows.ProductSetupFlow",
-                   return_value=_mock_product_setup_flow(_products())):
-            resp = await client.post("/api/v1/quotes", json={
-                "product_id": "ctv-premium-sports",
-                "deal_type": "PD",
-                "impressions": 50,
-            })
+        with patch(
+            "ad_seller.flows.ProductSetupFlow", return_value=_mock_product_setup_flow(_products())
+        ):
+            resp = await client.post(
+                "/api/v1/quotes",
+                json={
+                    "product_id": "ctv-premium-sports",
+                    "deal_type": "PD",
+                    "impressions": 50,
+                },
+            )
         assert resp.status_code == 400
         assert resp.json()["detail"]["error"] == "below_minimum_impressions"
 
@@ -248,7 +290,6 @@ class TestCreateQuote:
 
 
 class TestGetQuote:
-
     async def test_retrieve_stored_quote(self, client, mock_storage):
         quote_data = {
             "quote_id": "qt-abc123",

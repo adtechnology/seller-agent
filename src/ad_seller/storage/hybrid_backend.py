@@ -12,16 +12,17 @@ from typing import Any, Optional
 
 from ad_seller.storage.base import StorageBackend
 
-
 # Key prefixes routed to Redis (sessions, caches, ephemeral)
-_REDIS_PREFIXES = frozenset({
-    "session:",
-    "session_index:",
-    "cache:",
-    "lock:",
-    "pubsub:",
-    "rate_limit:",
-})
+_REDIS_PREFIXES = frozenset(
+    {
+        "session:",
+        "session_index:",
+        "cache:",
+        "lock:",
+        "pubsub:",
+        "rate_limit:",
+    }
+)
 
 
 def _is_redis_key(key: str) -> bool:

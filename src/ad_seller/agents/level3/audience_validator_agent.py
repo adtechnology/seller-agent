@@ -9,7 +9,7 @@ UCP (User Context Protocol) for real-time audience matching.
 
 from typing import Any
 
-from crewai import Agent, LLM
+from crewai import LLM, Agent
 
 from ...config import get_settings
 

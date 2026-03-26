@@ -29,6 +29,7 @@ def build_ssp_registry(settings: Any = None) -> SSPRegistry:
     """
     if settings is None:
         from ..config import get_settings
+
         settings = get_settings()
 
     registry = SSPRegistry()
@@ -115,6 +116,7 @@ def _create_ssp_client(name: str, settings: Any) -> Any:
     else:
         logger.warning(
             "Unknown SSP '%s'. To add support, create a client in ssp_factory.py "
-            "or use the generic REST/MCP clients.", name,
+            "or use the generic REST/MCP clients.",
+            name,
         )
         return None

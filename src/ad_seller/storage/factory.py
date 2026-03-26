@@ -30,6 +30,7 @@ def get_storage_backend(
     """
     # Import settings for defaults
     from ad_seller.config.settings import get_settings
+
     settings = get_settings()
 
     # Use settings as defaults
@@ -56,6 +57,7 @@ def get_storage_backend(
             )
 
         from ad_seller.storage.redis_backend import RedisBackend
+
         return RedisBackend(redis_url=redis_url)
 
     elif storage_type == "hybrid":
@@ -66,13 +68,12 @@ def get_storage_backend(
             )
         if not redis_url:
             raise ValueError(
-                "Redis URL required for hybrid storage. "
-                "Set REDIS_URL=redis://host:6379/0"
+                "Redis URL required for hybrid storage. Set REDIS_URL=redis://host:6379/0"
             )
 
+        from ad_seller.storage.hybrid_backend import HybridBackend
         from ad_seller.storage.postgres_backend import PostgresBackend
         from ad_seller.storage.redis_backend import RedisBackend
-        from ad_seller.storage.hybrid_backend import HybridBackend
 
         pg = PostgresBackend(
             database_url=database_url,
@@ -84,8 +85,7 @@ def get_storage_backend(
 
     else:
         raise ValueError(
-            f"Unknown storage type: {storage_type}. "
-            "Supported types: sqlite, redis, hybrid"
+            f"Unknown storage type: {storage_type}. Supported types: sqlite, redis, hybrid"
         )
 
 

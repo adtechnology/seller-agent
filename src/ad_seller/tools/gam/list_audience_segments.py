@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 
 from ...config import get_settings
 
-
 # IAB Audience Taxonomy 1.1 top-level categories for reference
 # Full taxonomy available at: https://github.com/InteractiveAdvertisingBureau/Taxonomies
 IAB_AUDIENCE_TAXONOMY_1_1 = {
@@ -113,10 +112,7 @@ class ListAudienceSegmentsTool(BaseTool):
 
                 # Filter by type if needed
                 if not include_third_party:
-                    segments = [
-                        s for s in segments
-                        if s.type.value != "THIRD_PARTY"
-                    ]
+                    segments = [s for s in segments if s.type.value != "THIRD_PARTY"]
 
                 # Group by IAB category (inferred from segment name/description)
                 categorized = self._categorize_segments(segments, iab_category)
@@ -168,7 +164,14 @@ class ListAudienceSegmentsTool(BaseTool):
             "Interest": ["interest", "hobby", "lifestyle", "entertainment", "sports", "travel"],
             "Purchase Intent": ["intent", "in-market", "shopping", "buyer", "purchase", "auto"],
             "Life Stage": ["parent", "homeowner", "student", "retired", "married", "family"],
-            "Seasonal & Event": ["holiday", "season", "event", "summer", "winter", "back-to-school"],
+            "Seasonal & Event": [
+                "holiday",
+                "season",
+                "event",
+                "summer",
+                "winter",
+                "back-to-school",
+            ],
             "Behaviors": ["device", "app", "mobile", "browser", "visitor", "frequent"],
             "Other": [],
         }

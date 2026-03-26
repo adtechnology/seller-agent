@@ -14,12 +14,12 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from crewai.flow.flow import Flow, start, listen
+from crewai.flow.flow import Flow, listen, start
 
-from ..models.flow_state import ExecutionStatus, SellerFlowState
-from ..models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
-from ..models.pricing_tiers import TieredPricingConfig
 from ..config import get_settings
+from ..models.buyer_identity import AccessTier, BuyerContext
+from ..models.flow_state import ExecutionStatus, SellerFlowState
+from ..models.pricing_tiers import TieredPricingConfig
 
 
 class DiscoveryState(SellerFlowState):
@@ -249,7 +249,12 @@ class DiscoveryInquiryFlow(Flow[DiscoveryState]):
 
         self.state.response_data["targeting"] = targeting_info
 
-    @listen(prepare_catalog_response, prepare_pricing_response, prepare_availability_response, prepare_targeting_response)
+    @listen(
+        prepare_catalog_response,
+        prepare_pricing_response,
+        prepare_availability_response,
+        prepare_targeting_response,
+    )
     async def finalize_response(self) -> None:
         """Finalize the discovery response."""
         self.state.status = ExecutionStatus.COMPLETED

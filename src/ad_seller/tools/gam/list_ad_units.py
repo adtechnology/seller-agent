@@ -60,8 +60,9 @@ class ListAdUnitsTool(BaseTool):
             )
 
         try:
-            from ...clients import GAMRestClient
             import asyncio
+
+            from ...clients import GAMRestClient
 
             async def fetch_ad_units():
                 async with GAMRestClient(
@@ -84,9 +85,7 @@ class ListAdUnitsTool(BaseTool):
             # Format results
             lines = [f"Found {len(ad_units)} ad units:\n"]
             for unit in ad_units:
-                sizes = ", ".join(
-                    f"{s.width}x{s.height}" for s in (unit.ad_unit_sizes or [])
-                )
+                sizes = ", ".join(f"{s.width}x{s.height}" for s in (unit.ad_unit_sizes or []))
                 lines.append(
                     f"- {unit.name} (ID: {unit.id})\n"
                     f"  Sizes: {sizes or 'Not specified'}\n"

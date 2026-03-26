@@ -3,10 +3,10 @@
 
 """Deal Library tools — support buyer-side Deal Library sub-agent workflows."""
 
-from .supply_chain import GetSupplyChainTool
-from .deal_performance import GetDealPerformanceTool
 from .bulk_deals import BulkDealOperationsTool
 from .create_from_template import CreateDealFromTemplateTool
+from .deal_performance import GetDealPerformanceTool
+from .supply_chain import GetSupplyChainTool
 
 __all__ = [
     "GetSupplyChainTool",

@@ -4,12 +4,11 @@
 """Pytest configuration and fixtures for Ad Seller System tests."""
 
 import pytest
-from typing import Generator
 
-from ad_seller.models.buyer_identity import BuyerContext, BuyerIdentity, AccessTier
-from ad_seller.models.pricing_tiers import TieredPricingConfig
-from ad_seller.models.flow_state import ProductDefinition
+from ad_seller.models.buyer_identity import BuyerContext, BuyerIdentity
 from ad_seller.models.core import DealType, PricingModel
+from ad_seller.models.flow_state import ProductDefinition
+from ad_seller.models.pricing_tiers import TieredPricingConfig
 
 
 @pytest.fixture

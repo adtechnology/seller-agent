@@ -16,8 +16,6 @@ from ..models.curator import (
     AGENT_RANGE_CURATOR,
     CuratedDeal,
     Curator,
-    CuratorFee,
-    CuratorType,
 )
 from ..models.supply_chain import SchainNode
 

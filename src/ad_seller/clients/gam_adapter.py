@@ -10,35 +10,32 @@ the unified AdServerClient abstraction.
 from datetime import datetime
 from typing import Any, Optional
 
-from .ad_server_base import (
-    AdServerClient,
-    AdServerType,
-    AdServerOrder,
-    AdServerLineItem,
-    AdServerDeal,
-    AdServerInventoryItem,
-    AdServerAudienceSegment,
-    BookingResult,
-    OrderStatus,
-    LineItemStatus,
-    DealStatus,
-)
-from .gam_soap_client import GAMSoapClient
-from .gam_rest_client import GAMRestClient
 from ..models.gam import (
-    GAMLineItemType,
-    GAMOrderStatus,
-    GAMLineItemStatus,
-    GAMTargeting,
-    GAMInventoryTargeting,
     GAMAdUnitTargeting,
-    GAMMoney,
+    GAMCostType,
     GAMGoal,
     GAMGoalType,
+    GAMInventoryTargeting,
+    GAMLineItemType,
+    GAMMoney,
+    GAMTargeting,
     GAMUnitType,
-    GAMCostType,
 )
-
+from .ad_server_base import (
+    AdServerAudienceSegment,
+    AdServerClient,
+    AdServerDeal,
+    AdServerInventoryItem,
+    AdServerLineItem,
+    AdServerOrder,
+    AdServerType,
+    BookingResult,
+    DealStatus,
+    LineItemStatus,
+    OrderStatus,
+)
+from .gam_rest_client import GAMRestClient
+from .gam_soap_client import GAMSoapClient
 
 # Status mapping from GAM-specific to normalized
 _ORDER_STATUS_MAP: dict[str, OrderStatus] = {
@@ -174,7 +171,11 @@ class GAMAdServerClient(AdServerClient):
             )
 
         # Map cost type
-        gam_cost_type = GAMCostType(cost_type) if cost_type in [e.value for e in GAMCostType] else GAMCostType.CPM
+        gam_cost_type = (
+            GAMCostType(cost_type)
+            if cost_type in [e.value for e in GAMCostType]
+            else GAMCostType.CPM
+        )
 
         # Determine line item type based on deal context
         line_item_type = GAMLineItemType.STANDARD
@@ -335,11 +336,7 @@ class GAMAdServerClient(AdServerClient):
                 name=unit.name,
                 parent_id=unit.parent_id,
                 status=unit.status,
-                sizes=[
-                    (s.size.width, s.size.height)
-                    for s in (unit.ad_unit_sizes or [])
-                    if s.size
-                ],
+                sizes=[(s.size.width, s.size.height) for s in (unit.ad_unit_sizes or []) if s.size],
                 ad_server_type=AdServerType.GOOGLE_AD_MANAGER,
             )
             for unit in ad_units
