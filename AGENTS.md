@@ -38,3 +38,25 @@ bd sync               # Sync with git
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 
+## Custom Kilo Code Modes
+
+This project includes custom AI assistant modes defined in `.kilocodemodes`:
+
+### UX/UI Design Expert (`ux-ui-expert`)
+Specializes in advertising technology interface design. Use for:
+- Media kit discovery interfaces
+- Approval workflow UIs
+- Deal activation instruction screens
+- Negotiation visualization
+- Inventory browser and search interfaces
+
+### IAB Agents Expert (`iab-agents-expert`)
+Specializes in building AI agents for programmatic advertising using IAB Tech Lab standards. Use for:
+- Implementing IAB standards (OpenDirect 2.1, OpenRTB, sellers.json)
+- Agent architecture and communication protocols (MCP, A2A)
+- Negotiation engine logic
+- Ad server and SSP integrations
+- Trust-based access control patterns
+
+To use these modes, switch to them in Kilo Code when working on relevant tasks.
+
